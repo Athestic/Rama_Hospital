@@ -6,9 +6,10 @@
     <uses-permission android:name="android.permission.CALL_PHONE"/>
 
     <application
-        android:label="bottom_navigation"
+        android:label="Rama Pulse"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ramalogo"
+        android:roundIcon="@mipmap/ramalogo">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -19,7 +20,7 @@
             android:windowSoftInputMode="adjustResize">
             <meta-data
                 android:name="io.flutter.embedding.android.NormalTheme"
-                android:resource="@style/NormalTheme" />
+                android:resource="@style/LaunchTheme" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

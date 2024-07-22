@@ -32,7 +32,7 @@ dependencies:
     sdk: flutter
   http: ^0.13.3
   lottie: ^2.2.0
-  url_launcher: ^6.0.20
+  url_launcher: ^6.1.5
   shared_preferences: ^2.0.6
 
 
@@ -48,7 +48,7 @@ dev_dependencies:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/icon/rcs.jpg"
+  image_path: "assets/ramalogo.jpeg"
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -80,7 +80,9 @@ flutter:
     - "assets/nasir.jpg"
     - "assets/Rama.jpg"
     - "assets/health.jpg"
-    - "assets/ramalogo.png"
+    - "assets/Ramalogo.jpeg"
+    - "assets/ramalogoapp.png"
+    - "assets/Ramalogobgr.png"
     - "assets/anilbhat.jpg"
     - "assets/home.png"
     - "assets/appointment.png"
@@ -113,9 +115,15 @@ flutter:
     - "assets/cardiology.jpg"
     - "assets/Ophthalmology.jpg"
     - "assets/doctor_banner.png"
-    - "assets/super_specialities/Gastro.jpg"
-    - "assets/super_specialities/nephrology.jpg"
-    - "assets/super_specialities/neurology.jpeg"
+    - "assets/icon/Gastroenterology.png"
+    - "assets/super_specialities/Gastroenterology.png"
+    - "assets/super_specialities/Cardiology.png"
+    - "assets/super_specialities/Nephrology.png"
+    - "assets/super_specialities/Orthopaedics.png"
+    - "assets/specialities/Dental.png"
+    - "assets/specialities/Haematology.png"
+    - "assets/specialities/Pulmonology.png"
+    - "assets/specialities/Urology.png"
   # healthcheckup
 
     - "assets/kanpur/kanpur_healthcheckup.jpg"
@@ -130,7 +138,8 @@ flutter:
     - "assets/splash/splash1.png"
     - "assets/splash/splash2.png"
     - "assets/splash/splash3.png"
-
+ #animation
+    - "assets/logoani.json"
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
 

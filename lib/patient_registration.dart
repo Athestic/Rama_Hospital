@@ -108,7 +108,6 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
       print('Error fetching cities: $e');
     }
   }
-
   Future<void> _fetchReligions() async {
     try {
       final response = await http.get(Uri.parse('http://192.168.1.196:8080/api/PatientRegistration/GetReligions'));
@@ -231,28 +230,49 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Partient Registration',
-          style: TextStyle(color: Colors.black,fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: SizedBox(
-              width: 34,
-              height: 34,
-              child: Image.asset('assets/Reg_Patient.png'),
-            ),
-            onPressed: () {
-              // Handle button press
-            },
+    return WillPopScope(
+      onWillPop: () async {
+        if (_currentPage == 0) {
+          return true; // Allow popping if on the first page
+        } else {
+          _pageController.previousPage(duration: Duration(milliseconds: 300), curve: Curves.ease);
+          return false; // Prevent default back navigation
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            'Partient Registration',
+            style: TextStyle(color: Colors.black,fontWeight: FontWeight.bold),
           ),
-        ],
-      ),
-
+          backgroundColor: Colors.white,
+          elevation: 0,
+          actions: [
+            IconButton(
+              icon: SizedBox(
+                width: 34,
+                height: 34,
+                child: Image.asset('assets/Reg_Patient.png'),
+              ),
+              onPressed: () {
+                // Handle button press
+              },
+            ),
+          ],
+        // backgroundColor: Colors.transparent,
+        // elevation:0,
+        leading:
+        IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            if (_currentPage == 0) {
+              Navigator.pop(context);
+            } else {
+              _pageController.previousPage(duration: Duration(milliseconds: 300), curve: Curves.ease);
+            }
+          },
+        ),
+        ),
       body: Form(
         key: _formKey,
         child: Column(
@@ -287,49 +307,150 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
           ],
         ),
       ),
-    );
+      ),
+            );
   }
   Widget _buildPage1() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: ListView(
         children: [
-          TextFormField(
-            controller: _firstNameController,
-            decoration: InputDecoration(labelText: 'First Name'),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter first name';
-              }
-              return null;
-            },
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _firstNameController,
+                  decoration: InputDecoration(
+                    labelText: 'First Name',
+                    labelStyle: TextStyle(
+                      color: Colors.black, // Label text color
+                      fontSize: 16.0, // Label text size
+                    ),
+                    hintText: 'Enter your first name', // Hint text
+                    border: OutlineInputBorder(), // Add border
+                  ),
+                  style: TextStyle(
+                    color: Colors.black, // Input text color
+                    fontSize: 18.0, // Input text size
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter first name';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+              SizedBox(width: 16.0), // Add space between fields
+              Expanded(
+                child: TextFormField(
+                  controller: _middleNameController,
+                  decoration: InputDecoration(
+                    labelText: 'Last Name',
+                    labelStyle: TextStyle(
+                      color: Colors.black,
+                      fontSize: 16.0,
+                    ),
+                    hintText: 'Enter your last Name',
+                    border: OutlineInputBorder(),
+                  ),
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 18.0,
+                  ),
+                ),
+              ),
+            ],
           ),
-          TextFormField(
-            controller: _middleNameController,
-            decoration: InputDecoration(labelText: 'Middle Name'),
-          ),
-          TextFormField(
-            controller: _lastNameController,
-            decoration: InputDecoration(labelText: 'Last Name'),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter last name';
-              }
-              return null;
-            },
-          ),
+          // ),
+          // SizedBox(height: 16.0),
+          // Row(
+          //   children: [
+          //     Expanded(
+          //       child: TextFormField(
+          //         controller: _firstNameController,
+          //         decoration: InputDecoration(
+          //           labelText: 'Guardian Name',
+          //           labelStyle: TextStyle(
+          //             color: Colors.black, // Label text color
+          //             fontSize: 16.0, // Label text size
+          //           ),
+          //           hintText: 'Enter Guardian Name', // Hint text
+          //           border: OutlineInputBorder(), // Add border
+          //         ),
+          //         style: TextStyle(
+          //           color: Colors.black, // Input text color
+          //           fontSize: 18.0, // Input text size
+          //         ),
+          //
+          //       ),
+          //     ),
+          //     SizedBox(width: 16.0), // Add space between fields
+          //     Expanded(
+          //       child: TextFormField(
+          //         controller: _middleNameController,
+          //         decoration: InputDecoration(
+          //           labelText: 'Relation',
+          //           labelStyle: TextStyle(
+          //             color: Colors.black,
+          //             fontSize: 16.0,
+          //           ),
+          //           hintText: 'Enter Relation with Patient',
+          //           border: OutlineInputBorder(),
+          //         ),
+          //         style: TextStyle(
+          //           color: Colors.black,
+          //           fontSize: 18.0,
+          //         ),
+          //       ),
+          //     ),
+          //   ],
+          // ),
+          SizedBox(height: 16.0),
           TextFormField(
             controller: _guardianNameController,
-            decoration: InputDecoration(labelText: 'Guardian Name'),
+            decoration: InputDecoration(
+              labelText: 'Guardian Name',
+              labelStyle: TextStyle(
+                color: Colors.black,
+                fontSize: 16.0,
+              ),
+              hintText: 'Enter guardian name',
+              border: OutlineInputBorder(),
+            ),
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 18.0,
+            ),
           ),
+          SizedBox(height: 16.0),
           TextFormField(
             controller: _relationController,
-            decoration: InputDecoration(labelText: 'Relation'),
+            decoration: InputDecoration(
+              labelText: 'Relation',
+              labelStyle: TextStyle(
+                color: Colors.black,
+                fontSize: 16.0,
+              ),
+              hintText: 'Enter relation',
+              border: OutlineInputBorder(),
+            ),
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 18.0,
+            ),
           ),
-          TextFormField(
+          SizedBox(height: 16.0),
+            TextFormField(
             controller: _dobController,
             decoration: InputDecoration(
               labelText: 'Date of Birth',
+              labelStyle: TextStyle(
+                color: Colors.black,
+                fontSize: 16.0,
+              ),
+              hintText: 'Enter relation',
+              border: OutlineInputBorder(),
               suffixIcon: IconButton(
                 icon: Icon(Icons.calendar_today),
                 onPressed: () {
@@ -337,11 +458,20 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
                 },
               ),
             ),
+
             readOnly: true,
           ),
+          SizedBox(height: 16.0),
           TextFormField(
             controller: _emailController,
-            decoration: InputDecoration(labelText: 'Email'),
+            decoration: InputDecoration(
+              labelText: 'Email',
+              labelStyle: TextStyle(
+              color: Colors.black,
+              fontSize: 16.0,
+            ),
+            hintText: 'Email',
+              border: OutlineInputBorder(),
             // validator: (value) {
             //   if (value == null || value.isEmpty) {
             //     return 'Please enter email';
@@ -349,9 +479,18 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
             //   return null;
             // },
           ),
+          ),
+          SizedBox(height: 16.0),
           DropdownButtonFormField<String>(
             value: _selectedReligion,
-            decoration: InputDecoration(labelText: 'Religion'),
+            decoration: InputDecoration(
+              labelText: 'Religion',
+              labelStyle: TextStyle(
+                color: Colors.black,
+                fontSize: 16.0,
+              ),
+              hintText: 'Religion',
+              border: OutlineInputBorder(),),
             items: _religions.map<DropdownMenuItem<String>>((religion) {
               return DropdownMenuItem<String>(
                 value: religion['religionName'],
@@ -370,9 +509,18 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
               return null;
             },
           ),
+          SizedBox(height: 16.0),
           TextFormField(
             controller: _phoneNumberController,
-            decoration: InputDecoration(labelText: 'Phone Number'),
+            decoration: InputDecoration(
+                labelText: 'Phone Number',
+                labelStyle: TextStyle(
+                color: Colors.black,
+                fontSize: 16.0,
+              ),
+              hintText: 'Phone Number',
+              border: OutlineInputBorder(),
+            ),
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'Please enter phone number';
@@ -380,9 +528,19 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
               return null;
             },
           ),
+          SizedBox(height: 16.0),
           TextFormField(
             controller: _aadhaarNumberController,
-            decoration: InputDecoration(labelText: 'Aadhaar Number'),
+            decoration: InputDecoration(
+                labelText: 'Aadhaar Number',
+
+              labelStyle: TextStyle(
+                color: Colors.black,
+                fontSize: 16.0,
+              ),
+              hintText: 'Aadhaar Number',
+              border: OutlineInputBorder(),
+            ),
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'Please enter Aadhaar number';
@@ -390,48 +548,78 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
               return null;
             },
           ),
-          DropdownButtonFormField<String>(
-            value: _gender,
-            decoration: InputDecoration(labelText: 'Gender'),
-            items: ['Male', 'Female'].map<DropdownMenuItem<String>>((gender) {
-              return DropdownMenuItem<String>(
-                value: gender,
-                child: Text(gender),
-              );
-            }).toList(),
-            onChanged: (String? newValue) {
-              setState(() {
-                _gender = newValue;
-              });
-            },
-            validator: (value) {
-              if (value == null) {
-                return 'Please select a gender';
-              }
-              return null;
-            },
+          SizedBox(height: 16.0),
+          Row(
+            children: [
+
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: _gender,
+                  decoration: InputDecoration(
+                    labelText: 'Gender',
+                    labelStyle: TextStyle(
+                      color: Colors.black,
+                      fontSize: 16.0,
+                    ),
+                    hintText: 'Gender',
+                    border: OutlineInputBorder(),),
+                  items: ['Male', 'Female'].map<DropdownMenuItem<String>>((gender) {
+                    return DropdownMenuItem<String>(
+                      value: gender,
+                      child: Text(gender),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _gender = newValue;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null) {
+                      return 'Please select a gender';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+              SizedBox(height: 16.0),
+              SizedBox(width: 16.0), // Add space between fields
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: _maritalStatus,
+                  decoration: InputDecoration(
+                    labelText: 'Marital Status',
+                    labelStyle: TextStyle(
+                      color: Colors.black,
+                      fontSize: 16.0,
+                    ),
+                    hintText: 'Status',
+                    border: OutlineInputBorder(),),
+                  items: ['Married', 'Unmarried'].map<DropdownMenuItem<String>>((status) {
+                    return DropdownMenuItem<String>(
+                      value: status,
+                      child: Text(status),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _maritalStatus = newValue;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null) {
+                      return 'Please select marital status';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+            ],
           ),
-          DropdownButtonFormField<String>(
-            value: _maritalStatus,
-            decoration: InputDecoration(labelText: 'Marital Status'),
-            items: ['Married', 'Unmarried'].map<DropdownMenuItem<String>>((status) {
-              return DropdownMenuItem<String>(
-                value: status,
-                child: Text(status),
-              );
-            }).toList(),
-            onChanged: (String? newValue) {
-              setState(() {
-                _maritalStatus = newValue;
-              });
-            },
-            validator: (value) {
-              if (value == null) {
-                return 'Please select marital status';
-              }
-              return null;
-            },
-          ),
+
+
+          SizedBox(height: 16.0),
+
         ],
       ),
     );
@@ -444,7 +632,14 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
         children: [
           TextFormField(
             controller: _attendantController,
-            decoration: InputDecoration(labelText: 'Attendant Name'),
+            decoration: InputDecoration(
+                labelText: 'Attendant Name',
+                labelStyle: TextStyle(
+                color: Colors.black,
+                fontSize: 16.0,
+              ),
+              hintText: 'Attendant Name',
+              border: OutlineInputBorder(),),
             // validator: (value) {
             //   if (value == null || value.isEmpty) {
             //     return 'Please enter attendant name';
@@ -452,9 +647,17 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
             //   return null;
             // },
           ),
+          SizedBox(height: 16.0),
           TextFormField(
             controller: _attendantContactNumberController,
-            decoration: InputDecoration(labelText: 'Attendant Contact Number'),
+            decoration: InputDecoration(
+                labelText: 'Attendant Contact Number',
+                labelStyle: TextStyle(
+                color: Colors.black,
+                fontSize: 16.0,
+              ),
+              hintText: 'Attendant Number',
+              border: OutlineInputBorder(),),
             // validator: (value) {
             //   if (value == null || value.isEmpty) {
             //     return 'Please enter attendant contact number';
@@ -462,9 +665,17 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
             //   return null;
             // },
           ),
+          SizedBox(height: 16.0),
           DropdownButtonFormField<String>(
             value: _selectedState,
-            decoration: InputDecoration(labelText: 'State'),
+            decoration: InputDecoration(
+                labelText: 'State',
+                labelStyle: TextStyle(
+                color: Colors.black,
+                fontSize: 16.0,
+              ),
+              hintText: 'State',
+              border: OutlineInputBorder(),),
             items: _states.map<DropdownMenuItem<String>>((state) {
               return DropdownMenuItem<String>(
                 value: state['stateId'].toString(),
@@ -486,9 +697,17 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
               return null;
             },
           ),
+          SizedBox(height: 16.0),
           DropdownButtonFormField<String>(
             value: _selectedCity,
-            decoration: InputDecoration(labelText: 'City'),
+            decoration: InputDecoration(
+                labelText: 'City',
+                labelStyle: TextStyle(
+                color: Colors.black,
+                fontSize: 16.0,
+              ),
+              hintText: 'City',
+              border: OutlineInputBorder(),),
             items: _cities.map<DropdownMenuItem<String>>((city) {
               return DropdownMenuItem<String>(
                 value: city['cityName'],
@@ -507,9 +726,17 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
               return null;
             },
           ),
+          SizedBox(height: 16.0),
           TextFormField(
             controller: _areaController,
-            decoration: InputDecoration(labelText: 'Area/Locality'),
+            decoration: InputDecoration(
+                labelText: 'Area/Locality',
+                labelStyle: TextStyle(
+                color: Colors.black,
+                fontSize: 16.0,
+              ),
+              hintText: 'Locality',
+              border: OutlineInputBorder(),),
             // validator: (value) {
             //   if (value == null || value.isEmpty) {
             //     return 'Please enter area/locality';
@@ -517,9 +744,17 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
             //   return null;
             // },
           ),
+          SizedBox(height: 16.0),
           TextFormField(
             controller: _villageController,
-            decoration: InputDecoration(labelText: 'Village/Town'),
+            decoration: InputDecoration(
+                labelText: 'Village/Town',
+                labelStyle: TextStyle(
+                color: Colors.black,
+                fontSize: 16.0,
+              ),
+              hintText: 'Village/Town',
+              border: OutlineInputBorder(),),
             // validator: (value) {
             //   if (value == null || value.isEmpty) {
             //     return 'Please enter village/town';
@@ -527,9 +762,17 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
             //   return null;
             // },
           ),
+          SizedBox(height: 16.0),
           TextFormField(
             controller: _relationWithPatientController,
-            decoration: InputDecoration(labelText: 'Relation with Patient'),
+            decoration: InputDecoration(
+                labelText: 'Password ',
+              labelStyle: TextStyle(
+                color: Colors.black,
+                fontSize: 16.0,
+              ),
+              hintText: 'Password',
+              border: OutlineInputBorder(),),
             // validator: (value) {
             //   if (value == null || value.isEmpty) {
             //     return 'Please enter relation with patient';
@@ -537,9 +780,16 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
             //   return null;
             // },
           ),
+          SizedBox(height: 16.0),
           TextFormField(
             controller: _emergencyContactNumberController,
-            decoration: InputDecoration(labelText: 'Emergency Contact Number'),
+            decoration: InputDecoration(labelText: 'Emergency Contact Number',
+               labelStyle: TextStyle(
+                color: Colors.black,
+                fontSize: 16.0,
+              ),
+              hintText: 'Emergency Number',
+              border: OutlineInputBorder(),
             // validator: (value) {
             //   if (value == null || value.isEmpty) {
             //     return 'Please enter emergency contact number';
@@ -547,7 +797,7 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
             //   return null;
             // },
           ),
-
+          ),
         ],
       ),
     );

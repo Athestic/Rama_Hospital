@@ -24,7 +24,9 @@ class ThankYouScreen extends StatelessWidget {
               style: TextStyle(fontSize: 16),
             ),
             SizedBox(height: 20),
+
             ElevatedButton(
+
               onPressed: () {
                 Navigator.pushAndRemoveUntil(
                   context,
@@ -32,7 +34,21 @@ class ThankYouScreen extends StatelessWidget {
                       (Route<dynamic> route) => false,
                 );
               },
-              child: Text('Back to Home'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.green,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10), // Curved sides
+                ),
+                padding: EdgeInsets.symmetric(vertical: 16.0), // Vertical padding
+              ),
+              child: Text('Login to Proceed',
+                style: TextStyle(
+                fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  fontFamily: 'Poppins'
+              ),
+              ),
             ),
           ],
         ),

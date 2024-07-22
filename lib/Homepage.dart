@@ -1,9 +1,9 @@
 import 'package:bottom_navigation/PatientLogin.dart';
 import 'package:bottom_navigation/colors.dart';
 import 'package:flutter/material.dart';
-import 'doctor_login.dart';
 import 'view_all_doctors.dart';
 import 'patient_registration.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'bookappointment.dart';
 
 
@@ -79,21 +79,23 @@ class _HomePageState extends State<HomePage> {
       'widget': DoctorCard(
         name: 'Dr. Anil Bhat',
         specialty: 'Cardiology',
-        // rating: 4.5,
+        rating: 4.5,
+        patientStories:30.0,
         imagePath: 'assets/doctors/dranilbhat.jpg',
-        // operations: 'Cardiac Surgery, Heart Transplant',
-        // degrees: 'MBBS, MD, DM Cardiology',
+        operations: 'Cardiac Surgery, Heart Transplant',
+        degrees: 'MBBS, MD, DM Cardiology',
       ),
     },
     {
       'type': 'Top Doctor',
       'widget': DoctorCard(
-        name: 'Dr. R K Singh',
-        specialty: 'MS-ENT',
-        // rating: 4.5,
-        imagePath: 'assets/doctors/RKSingh.jpg',
-        // operations: 'ENT Surgery, Cochlear Implant',
-        // degrees: 'MBBS, MS-ENT',
+        name: 'Dr. Sanjeev Rohatgi',
+        specialty: 'Ophthalmology',
+        rating: 4.5,
+        patientStories:20.0,
+        imagePath: 'assets/doctors/SanjeevRohatgi.jpg',
+        operations: 'ENT Surgery, Cochlear Implant',
+        degrees: 'MBBS, MS-ENT',
       ),
     },
     {
@@ -101,21 +103,23 @@ class _HomePageState extends State<HomePage> {
       'widget': DoctorCard(
         name: 'Dr. Arun Kumar',
         specialty: 'General Medicine',
-        // rating: 4.5,
+        rating: 4.5,
+        patientStories:34.0,
         imagePath: 'assets/doctors/arunkumar.jpg',
-        // operations: 'General Checkup, Diabetes Management',
-        // degrees: 'MBBS, MD General Medicine',
+        operations: 'General Checkup, Diabetes Management',
+        degrees: 'MBBS, MD General Medicine',
       ),
     },
     {
       'type': 'Top Doctor',
       'widget': DoctorCard(
-        name: 'Dr. Anshu Sharma',
-        specialty: 'Ophthalmology',
-        // rating: 4.5,
-        imagePath: 'assets/doctors/AnshuSharma.jpg',
-        // operations: 'Cataract Surgery, LASIK',
-        // degrees: 'MBBS, MS Ophthalmology',
+        name: 'Dr. Mahesh Gupta',
+        specialty: 'General Surgery',
+        rating: 4.5,
+        patientStories:23.0,
+        imagePath: 'assets/doctors/MaheshGupta.jpg',
+        operations: 'General Checkup',
+        degrees: 'MS-Gen-Surgery',
       ),
     },
 
@@ -154,7 +158,8 @@ class _HomePageState extends State<HomePage> {
         imagePath: 'assets/cardiology.jpg',
         details: 'Cardiology deals with disorders of the heart and blood vessels.',
         bestDoctor: 'Dr. Anil Bhat',
-        icon: Icons.favorite,
+        call:'7877775530',
+        iconPath: 'assets/super_specialities/Cardiology.png',
       ),
     },
     {
@@ -164,7 +169,8 @@ class _HomePageState extends State<HomePage> {
         imagePath: 'assets/super_specialities/Gastro.jpg',
         details: 'A gastroenterologist is a specialist in gastrointestinal diseases. Gastroenterologists treat all the organs in your digestive system.',
         bestDoctor: 'Dr. Anil Bhat',
-        icon: Icons.local_dining,
+        call:'7877775530',
+        iconPath: 'assets/super_specialities/Gastroenterology.png',
       ),
     },
     {
@@ -174,7 +180,8 @@ class _HomePageState extends State<HomePage> {
         imagePath: 'assets/super_specialities/nephrology.jpg',
         details: 'Nephrology is a branch of internal medicine that deals with kidney diseases and disorders.',
         bestDoctor: 'Dr. DK Sinha',
-        icon: Icons.opacity,
+        call:'7877775530',
+        iconPath: 'assets/super_specialities/Nephrology.png',
       ),
     },
     {
@@ -184,7 +191,8 @@ class _HomePageState extends State<HomePage> {
         imagePath: 'assets/super_specialities/neurology.jpeg',
         details: 'A neurologist is a medical doctor who diagnoses, treats and manages disorders of the brain and nervous system (brain, spinal cord and nerves).',
         bestDoctor: 'Dr. Navneet Kumar',
-        icon: Icons.memory,
+        call:'7877775530',
+        iconPath: 'assets/super_specialities/Orthopaedics.png',
       ),
     },
     {
@@ -194,7 +202,8 @@ class _HomePageState extends State<HomePage> {
         imagePath: 'assets/cardiology.jpg',
         details: 'Cardiology deals with disorders of the heart and blood vessels.',
         bestDoctor: 'Dr. Anil Bhat',
-        icon: Icons.favorite,
+        call:'7877775530',
+        iconPath: 'assets/specialities/Dental.png',
       ),
     },
     {
@@ -204,7 +213,8 @@ class _HomePageState extends State<HomePage> {
         imagePath: 'assets/Urology.jpg',
         details: 'Urology focuses on surgical and medical diseases of the urinary-tract system.',
         bestDoctor: 'Dr. R K Singh',
-        icon: Icons.local_hospital,
+        call:'7877775530',
+        iconPath: 'assets/specialities/Haematology.png',
       ),
     },
     {
@@ -214,7 +224,8 @@ class _HomePageState extends State<HomePage> {
         imagePath: 'assets/Colonoscopy.jpg',
         details: 'Colonoscopy is an endoscopic examination of the large bowel and the distal part of the small bowel.',
         bestDoctor: 'Dr. Arun Kumar',
-        icon: Icons.search,
+        call:'7877775530',
+        iconPath: 'assets/specialities/Pulmonology.png',
       ),
     },
     {
@@ -224,7 +235,8 @@ class _HomePageState extends State<HomePage> {
         imagePath: 'assets/Ophthalmology.jpg',
         details: 'Ophthalmology deals with the anatomy, physiology, and diseases of the eye.',
         bestDoctor: 'Dr. Anshu Sharma',
-        icon: Icons.remove_red_eye,
+        call:'7877775530',
+        iconPath: 'assets/specialities/Urology.png',
       ),
     },
     {
@@ -327,52 +339,94 @@ class _HomePageState extends State<HomePage> {
         elevation: 0,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
           children: [
-            Image.asset(
-              'assets/ramalogo.png', // Update the path to your logo asset
-              height: 50,
+
+            Padding(
+              padding: const EdgeInsets.only(top: 15.0), // Adjust the top padding value as needed
+              child: Image.asset(
+                'assets/Ramalogo.jpeg', // Update the path to your logo asset
+                height: 100,
+              ),
             ),
             Row(
               children: [
                 IconButton(
-                  icon: SizedBox(
-                    width: 34,
-                    height: 34,
-                    child: Image.asset('assets/ambulance.png'),
-                  ),
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: Text('Emergency Call'),
-                          content: Padding(
-                            padding: const EdgeInsets.only(top: 16.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                IconButton(
-                                  icon: Icon(Icons.call, size: 50, color: Colors.green),
-                                  onPressed: () {
-                                    _makePhoneCall('tel:7877775530');
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
-                              child: Text('Close'),
-                            ),
-                          ],
-                        );
+                    icon: SizedBox(
+                      width: 34,
+                      height: 34,
+                      child: Image.asset('assets/ambulance.png'),
+                    ),
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (BuildContext context) {
+                          return Container(
+                              height: MediaQuery.of(context).size.height * 0.2,
+                              width: MediaQuery.of(context).size.height * 0.5,// Set height to 40% of screen height
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  RichText(
+                                    text: TextSpan(
+                                      children: <TextSpan>[
+                                        TextSpan(
+                                          text: 'Emergency ',
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontSize: 18.0,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        TextSpan(
+                                          text: 'Call,',
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontSize: 18.0,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        TextSpan(
+                                          text: ' Ambulance',
+                                          style: TextStyle(
+                                            color: Colors.red,
+                                            fontSize: 18.0,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(height: 16.0),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red, // Background color
+                                      foregroundColor: Colors.white, // Text color
+                                    ),
+                                    child: Text(
+                                      '7877775530',
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontFamily: 'Poppins',
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      makePhoneCall('tel:7877775530');
+                                        },
+                                      ),
+                                    ],
+
+                          )
+                              );
                       },
                     );
-                  },
+                  }
+
+
                 ),
+
 
                 IconButton(
                   icon: SizedBox(
@@ -387,6 +441,7 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
+
       body: ListView(
         padding: EdgeInsets.all(16.0),
         children: <Widget>[
@@ -435,7 +490,6 @@ class _HomePageState extends State<HomePage> {
               color: AppColors.primaryColor,
               borderRadius: BorderRadius.circular(10.0),
             ),
-
             child: Row(
               children: [
                 Expanded(
@@ -451,25 +505,31 @@ class _HomePageState extends State<HomePage> {
                           fontFamily: 'Poppins',
                         ),
                       ),
-                      SizedBox(height: 4.0), // Spacing between texts
+                      SizedBox(height: 4.0),
                       Text(
                         'Explore Advice, Health Tips & More',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 14.0,
-                          fontFamily: 'Poppins'// Smaller font size for second text
+                          fontFamily: 'Poppins',
                         ),
                       ),
                     ],
                   ),
                 ),
+                // Padding(
+                  // padding: EdgeInsets.zero,
                 Image.asset(
-                  'assets/ban_doc.png', // Update the path to your image asset
-                  height: 90,
-                ),
+                    'assets/ban_doc.png', // Update the path to your image asset
+                    height: 80,
+
+
+                  ),
+                // ),
               ],
             ),
           ),
+
           SizedBox(height: 16.0),
 
           // Section 1
@@ -477,7 +537,7 @@ class _HomePageState extends State<HomePage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Top Doctors',
+                'Our Medical Experts',
                 style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
               ),
               GestureDetector(
@@ -491,7 +551,7 @@ class _HomePageState extends State<HomePage> {
                   'View All',
                   style: TextStyle(
                     fontSize: 16.0,
-                    color: Colors.blue,
+                    color: Colors.black,
                   ),
                 ),
               ),
@@ -520,7 +580,7 @@ class _HomePageState extends State<HomePage> {
           ),
           SizedBox(height: 8.0),
           Container(
-            height: 200,
+            height: 100,
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: _filteredSections
@@ -541,7 +601,7 @@ class _HomePageState extends State<HomePage> {
           ),
           SizedBox(height: 8.0),
           Container(
-            height: 200,
+            height: 100,
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: _filteredSections
@@ -562,7 +622,7 @@ class _HomePageState extends State<HomePage> {
           ),
           SizedBox(height: 8.0),
           Container(
-            height: 200,
+            height: 100,
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: _filteredSections
@@ -583,7 +643,7 @@ class _HomePageState extends State<HomePage> {
           ),
           SizedBox(height: 8.0),
           Container(
-            height: 200,
+            height: 100,
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: _filteredSections
@@ -604,7 +664,7 @@ class _HomePageState extends State<HomePage> {
           ),
           SizedBox(height: 8.0),
           Container(
-            height: 200,
+            height: 100,
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: _filteredSections
@@ -627,82 +687,89 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class _makePhoneCall {
-  _makePhoneCall(String s);
-}
 
 // Doctor Card Widget
 class DoctorCard extends StatelessWidget {
   final String name;
   final String specialty;
-  // final double rating;
+  final double rating;
   final String imagePath;
-  // final String operations;
-  // final String degrees;
+  final String operations;
+  final String degrees;
+  final double patientStories;
 
   const DoctorCard({
     required this.name,
     required this.specialty,
-    // required this.rating,
+    required this.rating,
     required this.imagePath,
-    // required this.operations,
-    // required this.degrees,
+    required this.operations,
+    required this.degrees,
+    required this.patientStories,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Text(name),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.asset(imagePath),
-                    ),
-                    SizedBox(height: 15),
-                    Text('Specialty: $specialty'),
-                    // Text('Rating: $rating'),
-                    // Text('Operations: $operations'),
-                    // Text('Degrees: $degrees'),
-                    SizedBox(height: 8),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => PatientRegistrationForm()),
-                        );
-                      },
-                      child: Text('Book Appointment'),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text('Close'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+    //   onTap: () {
+    //     showDialog(
+    //       context: context,
+    //       builder: (BuildContext context)
+          // {
+            // return AlertDialog(
+            //   title: Center(child: Text(name)),
+            //   content: SingleChildScrollView(
+            //     child: Column(
+            //       mainAxisSize: MainAxisSize.min,
+            //       children: [
+            //         ClipRRect(
+            //           borderRadius: BorderRadius.circular(10),
+            //           child: Image.asset(imagePath),
+            //         ),
+            //         SizedBox(height: 15),
+            //         Center(child: Text('Specialty: $specialty')),
+            //         Center(child: Text('Rating: $rating')),
+            //         Center(child: Text('Operations: $operations')),
+            //         Center(child: Text('Degrees: $degrees')),
+            //         Center(child: Text('Patient Stories: $patientStories')),
+            //         SizedBox(height: 8),
+            //         ElevatedButton(
+            //           onPressed: () {
+            //             Navigator.of(context).pop();
+            //             Navigator.push(
+            //               context,
+            //               MaterialPageRoute(
+            //                 builder: (context) => PatientRegistrationForm(),
+            //               ),
+            //             );
+            //           },
+            //           child: Text('Book Appointment'),
+            //           style: ElevatedButton.styleFrom(
+            //             foregroundColor: Colors.white, // Foreground color
+            //             backgroundColor: Colors.teal, // Background color
+            //           ),
+            //         ),
+            //         SizedBox(height: 8),
+            //         ElevatedButton(
+            //           onPressed: () {
+            //             Navigator.of(context).pop();
+            //           },
+            //           child: Text('Close'),
+            //           style: ElevatedButton.styleFrom(
+            //             foregroundColor: Colors.white, // Foreground color
+            //             backgroundColor: Colors.grey, // Background color
+            //           ),
+            //         ),
+            //       ],
+            //     ),
+            //   ),
+            // );
+         // },
+        //);
+      //},
       child: Container(
-        // padding: const EdgeInsets.only(top: 8.0),
-        // margin: EdgeInsets.all(1.0),
         width: 150,
-        height: 200, // Add the height property here
+        height: 200,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20), // Curved sides
@@ -718,19 +785,28 @@ class DoctorCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)), // Curved top
-              child: Image.asset(
-                imagePath,
-                width: 100,
-                height:140,
-                fit: BoxFit.cover,
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: Colors.grey, // Border color
+                  width: 2.0, // Border width
+                ),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)), // Curved top
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)), // Curved top
+                child: Image.asset(
+                  imagePath,
+                  width: 100,
+                  height: 140,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center, // Center the text
                 children: [
                   Text(
                     name,
@@ -749,6 +825,7 @@ class DoctorCard extends StatelessWidget {
     );
   }
 }
+
 
 // Offer Card Widget
 class OfferCard extends StatelessWidget {
@@ -787,46 +864,101 @@ class SuperSpecialties extends StatelessWidget {
   final String imagePath;
   final String details;
   final String bestDoctor;
-  final IconData icon;
+  final String iconPath; // Changed to String to handle custom icon path
+  final String call;
 
   SuperSpecialties({
     required this.description,
     required this.imagePath,
     required this.details,
     required this.bestDoctor,
-    required this.icon,
+    required this.iconPath,
+    required this.call,
   });
+
+  Future<void> _launchDialer(String number) async {
+    final url = 'tel:$number';
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Image.asset(
-            imagePath,
-            height: 100,
-            width: 100,
-            fit: BoxFit.cover,
-          ),
-          SizedBox(height: 8.0),
-          Text(
-            description,
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          Row(
+    return GestureDetector(
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.asset(imagePath),
+                    ),
+                    SizedBox(height: 15),
+                    Center(child: Text('Description: $description')),
+                    Center(child: Text('Details: $details')),
+                    Center(child: Text('Best Doctor: $bestDoctor')),
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          _launchDialer(call);
+                        },
+                        child: Text('Call Now: $call'),
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.white, // Foreground color
+                          backgroundColor: Colors.blue, // Background color
+                        ),
+                      ),
+                    ),
+                    // SizedBox(height: 8),
+                    // ElevatedButton(
+                    //   onPressed: () {
+                    //     Navigator.of(context).pop();
+                    //   },
+                    //   child: Text('Close'),
+                    //   style: ElevatedButton.styleFrom(
+                    //     foregroundColor: Colors.white, // Foreground color
+                    //     backgroundColor: Colors.grey, // Background color
+                    //   ),
+                    // ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column( // Changed from Row to Column
             children: [
-              Icon(icon),
-              SizedBox(width: 4.0),
-              Text(details),
+              Image.asset(
+                iconPath,
+                height: 24,
+                width: 24,
+              ),
+              SizedBox(height: 8.0), // Changed from width to height
+              Text(
+                description,
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ],
           ),
-          Text('Best Doctor: $bestDoctor'),
-        ],
+        ),
       ),
     );
   }
 }
+
+
 
 // Specialties Widget
 class Specialties extends StatelessWidget {
@@ -834,42 +966,95 @@ class Specialties extends StatelessWidget {
   final String imagePath;
   final String details;
   final String bestDoctor;
-  final IconData icon;
+  final String iconPath;
+  final String call;
 
   Specialties({
     required this.description,
     required this.imagePath,
     required this.details,
     required this.bestDoctor,
-    required this.icon,
+    required this.iconPath,
+    required this.call,
   });
+
+  Future<void> _launchDialer(String number) async {
+    final url = 'tel:$number';
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Image.asset(
-            imagePath,
-            height: 100,
-            width: 100,
-            fit: BoxFit.cover,
-          ),
-          SizedBox(height: 8.0),
-          Text(
-            description,
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          Row(
+    return GestureDetector(
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.asset(imagePath),
+                    ),
+                    SizedBox(height: 15),
+                    Center(child: Text('Description: $description')),
+                    Center(child: Text('Details: $details')),
+                    Center(child: Text('Best Doctor: $bestDoctor')),
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          _launchDialer(call);
+                        },
+                        child: Text('Call Now: $call'),
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.white, // Foreground color
+                          backgroundColor: Colors.blue, // Background color
+                        ),
+                      ),
+                    ),
+                    // SizedBox(height: 8),
+                    // ElevatedButton(
+                    //   onPressed: () {
+                    //     Navigator.of(context).pop();
+                    //   },
+                    //   child: Text('Close'),
+                    //   style: ElevatedButton.styleFrom(
+                    //     foregroundColor: Colors.white, // Foreground color
+                    //     backgroundColor: Colors.grey, // Background color
+                    //   ),
+                    // ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column( // Changed from Row to Column
             children: [
-              Icon(icon),
-              SizedBox(width: 4.0),
-              Text(details),
+              Image.asset(
+                iconPath,
+                height: 24,
+                width: 24,
+              ),
+              SizedBox(height: 8.0), // Changed from width to height
+              Text(
+                description,
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ],
           ),
-          Text('Best Doctor: $bestDoctor'),
-        ],
+        ),
       ),
     );
   }
@@ -905,6 +1090,7 @@ class Services extends StatelessWidget {
 // Health Checkup Widget
 class HealthCheckup extends StatelessWidget {
   final String description;
+
   // final String tests;
   // final String preparation;
 
@@ -934,5 +1120,13 @@ class HealthCheckup extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+Future<void> makePhoneCall(String url) async {
+  if (await canLaunch(url)) {
+    await launch(url);
+  } else {
+    throw 'Could not launch $url';
   }
 }
