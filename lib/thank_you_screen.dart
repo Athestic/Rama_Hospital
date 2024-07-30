@@ -1,13 +1,13 @@
 import 'package:bottom_navigation/PatientLogin.dart';
 import 'package:bottom_navigation/colors.dart';
 import 'package:flutter/material.dart';
+
 class ThankYouScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.primaryColor,
       body: Center(
-
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -24,9 +24,7 @@ class ThankYouScreen extends StatelessWidget {
               style: TextStyle(fontSize: 16),
             ),
             SizedBox(height: 20),
-
             ElevatedButton(
-
               onPressed: () {
                 Navigator.pushAndRemoveUntil(
                   context,
@@ -35,19 +33,21 @@ class ThankYouScreen extends StatelessWidget {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.green,
+                backgroundColor:Colors.white,
+               // The background color to match the uploaded image
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10), // Curved sides
+                  borderRadius: BorderRadius.circular(6), // Curved sides
                 ),
-                padding: EdgeInsets.symmetric(vertical: 16.0), // Vertical padding
+                padding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 32.0), // Vertical and horizontal padding
               ),
-              child: Text('Login to Proceed',
+              child: Text(
+                'Login',
                 style: TextStyle(
-                fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  fontFamily: 'Poppins'
-              ),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14, // Adjusted font size to be more readable
+                  color: Colors.black,
+                  fontFamily: 'Poppins',
+                ),
               ),
             ),
           ],

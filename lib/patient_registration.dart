@@ -11,6 +11,7 @@ void main() {
 
 class RegistrationNavigation extends StatelessWidget {
   @override
+
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -33,11 +34,12 @@ class RegistrationNavigation extends StatelessWidget {
 
 class PatientRegistrationForm extends StatefulWidget {
   @override
-  _PatientRegistrationFormState createState() => _PatientRegistrationFormState();
+   _PatientRegistrationFormState createState() => _PatientRegistrationFormState();
 }
 
 class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
   final _formKey = GlobalKey<FormState>();
+  bool _obscureText = true;
   late PageController _pageController;
   List<Map<String, dynamic>> _states = [];
   List<Map<String, dynamic>> _cities = [];
@@ -68,7 +70,7 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
 
   Future<void> _fetchStates() async {
     try {
-      final response = await http.get(Uri.parse('http://192.168.1.196:8080/api/PatientRegistration/GetState'));
+      final response = await http.get(Uri.parse('http://192.168.1.166:8080/api/PatientRegistration/GetState'));
       if (response.statusCode == 200) {
         List<dynamic> statesData = json.decode(response.body);
         setState(() {
@@ -89,7 +91,7 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
 
   Future<void> _fetchCities(int stateId) async {
     try {
-      final response = await http.get(Uri.parse('http://192.168.1.196:8080/api/PatientRegistration/GetCityByState?StateId=$stateId'));
+      final response = await http.get(Uri.parse('http://192.168.1.166:8080/api/PatientRegistration/GetCityByState?StateId=$stateId'));
       if (response.statusCode == 200) {
         List<dynamic> citiesData = json.decode(response.body);
         setState(() {
@@ -110,7 +112,7 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
   }
   Future<void> _fetchReligions() async {
     try {
-      final response = await http.get(Uri.parse('http://192.168.1.196:8080/api/PatientRegistration/GetReligions'));
+      final response = await http.get(Uri.parse('http://192.168.1.166:8080/api/PatientRegistration/GetReligions'));
       if (response.statusCode == 200) {
         List<dynamic> religionsData = json.decode(response.body);
         setState(() {
@@ -133,7 +135,7 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
     try {
       print('Sending patient data: ${json.encode(patientData)}'); // Logging the payload
       final response = await http.post(
-        Uri.parse('http://192.168.1.196:8081/api/Application/PatientRegistrationApp'),
+        Uri.parse('http://192.168.1.166:8081/api/Application/PatientRegistrationApp'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(patientData),
       );
@@ -176,7 +178,7 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
           'address': _areaController.text,
           'Village': _villageController.text,
           'state_id': _selectedState,
-          'relationWithPatient': _relationWithPatientController.text,
+          'Password': _passwordController.text,
           'emergency_contact_no': _emergencyContactNumberController.text,
         };
         _registerPatient(patientData);
@@ -225,7 +227,7 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
   final TextEditingController _attendantContactNumberController = TextEditingController();
   final TextEditingController _areaController = TextEditingController();
   final TextEditingController _villageController = TextEditingController();
-  final TextEditingController _relationWithPatientController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _emergencyContactNumberController = TextEditingController();
 
   @override
@@ -259,7 +261,7 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
               },
             ),
           ],
-        // backgroundColor: Colors.transparent,
+       // backgroundColor: Colors.transparent,
         // elevation:0,
         leading:
         IconButton(
@@ -358,6 +360,12 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
                     color: Colors.black,
                     fontSize: 18.0,
                   ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter Last name';
+                    }
+                    return null;
+                  },
                 ),
               ),
             ],
@@ -617,8 +625,34 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
             ],
           ),
 
-
           SizedBox(height: 16.0),
+          TextFormField(
+            controller: _passwordController,
+            decoration: InputDecoration(
+              labelText: 'Password',
+              labelStyle: TextStyle(
+                color: Colors.black,
+                fontSize: 16.0,
+              ),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscureText ? Icons.visibility : Icons.visibility_off,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _obscureText = !_obscureText;
+                  });
+                },
+              ),
+              hintText: 'Password',
+              border: OutlineInputBorder(),),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter a new Password';
+              }
+              return null;
+            },
+          ),
 
         ],
       ),
@@ -762,24 +796,7 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
             //   return null;
             // },
           ),
-          SizedBox(height: 16.0),
-          TextFormField(
-            controller: _relationWithPatientController,
-            decoration: InputDecoration(
-                labelText: 'Password ',
-              labelStyle: TextStyle(
-                color: Colors.black,
-                fontSize: 16.0,
-              ),
-              hintText: 'Password',
-              border: OutlineInputBorder(),),
-            // validator: (value) {
-            //   if (value == null || value.isEmpty) {
-            //     return 'Please enter relation with patient';
-            //   }
-            //   return null;
-            // },
-          ),
+
           SizedBox(height: 16.0),
           TextFormField(
             controller: _emergencyContactNumberController,

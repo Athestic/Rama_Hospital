@@ -1,10 +1,14 @@
 import 'package:bottom_navigation/PatientLogin.dart';
+import 'package:bottom_navigation/ViewallSuperSpecialities.dart';
 import 'package:bottom_navigation/colors.dart';
+import 'bottomnavigation.dart';
 import 'package:flutter/material.dart';
 import 'view_all_doctors.dart';
 import 'patient_registration.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'bookappointment.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 
 class HomeScreen extends StatefulWidget {
@@ -307,11 +311,11 @@ class _HomePageState extends State<HomePage> {
                   .description
                   .toLowerCase()
                   .contains(_searchQuery.toLowerCase())) ||
-          (section['widget'] is SuperSpecialties &&
-              (section['widget'] as SuperSpecialties)
-                  .description
-                  .toLowerCase()
-                  .contains(_searchQuery.toLowerCase())) ||
+          // (section['widget'] is SuperSpecialties &&
+          //     (section['widget'] as SuperSpecialties)
+          //         .description
+          //         .toLowerCase()
+          //         .contains(_searchQuery.toLowerCase())) ||
           (section['widget'] is Specialties &&
               (section['widget'] as Specialties)
                   .description
@@ -345,8 +349,9 @@ class _HomePageState extends State<HomePage> {
             Padding(
               padding: const EdgeInsets.only(top: 15.0), // Adjust the top padding value as needed
               child: Image.asset(
-                'assets/Ramalogo.jpeg', // Update the path to your logo asset
-                height: 100,
+                'assets/ramalogoapp.png', // Update the path to your logo asset
+                height: 60,
+                width: 120,
               ),
             ),
             Row(
@@ -363,7 +368,7 @@ class _HomePageState extends State<HomePage> {
                         isScrollControlled: true,
                         builder: (BuildContext context) {
                           return Container(
-                              height: MediaQuery.of(context).size.height * 0.2,
+                              height: MediaQuery.of(context).size.height * 0.15,
                               width: MediaQuery.of(context).size.height * 0.5,// Set height to 40% of screen height
                               padding: const EdgeInsets.all(16.0),
                               child: Column(
@@ -413,16 +418,16 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                     ),
                                     onPressed: () {
-                                      makePhoneCall('tel:7877775530');
-                                        },
-                                      ),
-                                    ],
+                                      _launchDialer('tel:7877775530');
+                                    },
+                                  ),
+                                ],
 
-                          )
-                              );
-                      },
-                    );
-                  }
+                              )
+                          );
+                        },
+                      );
+                    }
 
 
                 ),
@@ -518,13 +523,13 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 // Padding(
-                  // padding: EdgeInsets.zero,
+                // padding: EdgeInsets.zero,
                 Image.asset(
-                    'assets/ban_doc.png', // Update the path to your image asset
-                    height: 80,
+                  'assets/ban_doc.png', // Update the path to your image asset
+                  height: 80,
 
 
-                  ),
+                ),
                 // ),
               ],
             ),
@@ -532,6 +537,7 @@ class _HomePageState extends State<HomePage> {
 
           SizedBox(height: 16.0),
 
+          // Section 1
           // Section 1
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -547,16 +553,28 @@ class _HomePageState extends State<HomePage> {
                     MaterialPageRoute(builder: (context) => ViewAllDoctors()),
                   );
                 },
-                child: Text(
-                  'View All',
-                  style: TextStyle(
-                    fontSize: 16.0,
-                    color: Colors.black,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'View All',
+                      style: TextStyle(
+                        fontSize: 16.0,
+                        color: Colors.teal,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(width: 4.0), // Adjust the width as needed
+                    Icon(
+                      Icons.arrow_forward_sharp,
+                      color: Colors.teal,
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
+
           SizedBox(height: 10.0),
           Container(
             height: 220,
@@ -571,12 +589,6 @@ class _HomePageState extends State<HomePage> {
                   ))
                   .toList(),
             ),
-          ),
-          SizedBox(height: 40),
-          // Section 2
-          Text(
-            'Special Offers',
-            style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 8.0),
           Container(
@@ -711,62 +723,87 @@ class DoctorCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-    //   onTap: () {
-    //     showDialog(
-    //       context: context,
-    //       builder: (BuildContext context)
-          // {
-            // return AlertDialog(
-            //   title: Center(child: Text(name)),
-            //   content: SingleChildScrollView(
-            //     child: Column(
-            //       mainAxisSize: MainAxisSize.min,
-            //       children: [
-            //         ClipRRect(
-            //           borderRadius: BorderRadius.circular(10),
-            //           child: Image.asset(imagePath),
-            //         ),
-            //         SizedBox(height: 15),
-            //         Center(child: Text('Specialty: $specialty')),
-            //         Center(child: Text('Rating: $rating')),
-            //         Center(child: Text('Operations: $operations')),
-            //         Center(child: Text('Degrees: $degrees')),
-            //         Center(child: Text('Patient Stories: $patientStories')),
-            //         SizedBox(height: 8),
-            //         ElevatedButton(
-            //           onPressed: () {
-            //             Navigator.of(context).pop();
-            //             Navigator.push(
-            //               context,
-            //               MaterialPageRoute(
-            //                 builder: (context) => PatientRegistrationForm(),
-            //               ),
-            //             );
-            //           },
-            //           child: Text('Book Appointment'),
-            //           style: ElevatedButton.styleFrom(
-            //             foregroundColor: Colors.white, // Foreground color
-            //             backgroundColor: Colors.teal, // Background color
-            //           ),
-            //         ),
-            //         SizedBox(height: 8),
-            //         ElevatedButton(
-            //           onPressed: () {
-            //             Navigator.of(context).pop();
-            //           },
-            //           child: Text('Close'),
-            //           style: ElevatedButton.styleFrom(
-            //             foregroundColor: Colors.white, // Foreground color
-            //             backgroundColor: Colors.grey, // Background color
-            //           ),
-            //         ),
-            //       ],
-            //     ),
-            //   ),
-            // );
-         // },
-        //);
-      //},
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(20.0)),
+              ),
+              title: Center(child: Text(name)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.asset(imagePath),
+                    ),
+                    SizedBox(height: 15),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Specialty:', style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text(specialty),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Rating:', style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text(rating.toString()),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Operations:', style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text(operations),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Degrees:', style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text(degrees),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Patient Stories:', style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text(patientStories.toString()),
+                      ],
+                    ),
+                    SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PatientRegistrationForm(),
+                          ),
+                        );
+                      },
+                      child: Text('Book Appointment'),
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Colors.white, // Foreground color
+                        backgroundColor: Colors.teal, // Background color
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
       child: Container(
         width: 150,
         height: 200,
@@ -825,7 +862,6 @@ class DoctorCard extends StatelessWidget {
     );
   }
 }
-
 
 // Offer Card Widget
 class OfferCard extends StatelessWidget {
@@ -958,8 +994,6 @@ class SuperSpecialties extends StatelessWidget {
   }
 }
 
-
-
 // Specialties Widget
 class Specialties extends StatelessWidget {
   final String description;
@@ -979,9 +1013,9 @@ class Specialties extends StatelessWidget {
   });
 
   Future<void> _launchDialer(String number) async {
-    final url = 'tel:$number';
-    if (await canLaunch(url)) {
-      await launch(url);
+    final Uri url = Uri(scheme: 'tel', path: number);
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
     } else {
       throw 'Could not launch $url';
     }
@@ -1122,10 +1156,10 @@ class HealthCheckup extends StatelessWidget {
     );
   }
 }
-
-Future<void> makePhoneCall(String url) async {
-  if (await canLaunch(url)) {
-    await launch(url);
+Future<void> _launchDialer(String number) async {
+  final Uri url = Uri(scheme: 'tel', path: number);
+  if (await canLaunchUrl(url)) {
+    await launchUrl(url);
   } else {
     throw 'Could not launch $url';
   }

@@ -3,7 +3,6 @@ import 'view_all_doctors.dart';
 import 'package:bottom_navigation/Homepage.dart';
 import 'dart:async';
 import 'colors.dart';
-import 'package:lottie/lottie.dart';
 
 void main() {
   runApp(MyApp());
@@ -36,7 +35,7 @@ class _SliderSplashScreenState extends State<SliderSplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration(seconds: 2), () {
+    Future.delayed(Duration(seconds: 4), () {
       _pageController.nextPage(
         duration: Duration(milliseconds: 500),
         curve: Curves.easeIn,
@@ -45,8 +44,8 @@ class _SliderSplashScreenState extends State<SliderSplashScreen> {
   }
 
   List<Widget> _pages = [
-    AnimatedSplashPage(
-      imagePath: 'assets/Ramalogo.jpeg',
+    SplashPage(
+      imagePath: 'assets/splash/heart_splash.png',
       title: 'RamaPulse',
       description: 'Rama Hospital',
       isFirstPage: true,
@@ -141,156 +140,122 @@ class _SliderSplashScreenState extends State<SliderSplashScreen> {
   }
 }
 
-class AnimatedSplashPage extends StatefulWidget {
-  final String imagePath;
-  final String title;
-  final String description;
-  final bool isFirstPage;
-
-  AnimatedSplashPage({
-    required this.imagePath,
-    required this.title,
-    required this.description,
-    this.isFirstPage = false,
-  });
-
-  @override
-  _AnimatedSplashPageState createState() => _AnimatedSplashPageState();
-}
-
-class _AnimatedSplashPageState extends State<AnimatedSplashPage> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
-    );
-    _animation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.bounceOut,
-    );
-    _controller.forward().then((_) {
-      if (widget.isFirstPage) {
-        Timer(Duration(seconds: 1), () {
-          if (mounted) {
-            Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => SliderSplashScreen()));
-          }
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SlideTransition(
-      position: Tween<Offset>(
-        begin: Offset(0, 1),
-        end: Offset(0, 0),
-      ).animate(_controller),
-      child: SplashPage(
-        imagePath: widget.imagePath,
-        title: widget.title,
-        description: widget.description,
-        isFirstPage: widget.isFirstPage,
-        animation: _animation,
-      ),
-    );
-  }
-}
-
 class SplashPage extends StatelessWidget {
   final String imagePath;
   final String title;
-  final String description;
+  final String? description;
   final bool isFirstPage;
   final bool isCustomTitle;
-  final Animation<double>? animation;
 
   SplashPage({
     required this.imagePath,
     required this.title,
-    required this.description,
+    this.description,
     this.isFirstPage = false,
     this.isCustomTitle = false,
-    this.animation,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       color: Colors.white,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Stack(
         children: [
-          if (isFirstPage)
-            ScaleTransition(
-              scale: animation!,
-              child: Image.asset(imagePath),
-            )
-          else ...[
-            Image.asset(imagePath),
-            // Spacer(),  // Add space between the image and the text/description
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  if (isCustomTitle)
-                    RichText(
-                      textAlign: TextAlign.center,
-                      text: TextSpan(
-                        text: '',
-                        children: title.split(' ').map((word) {
-                          Color color = Colors.black;
-                          if (word == 'Advanced' || word == 'Care' || word == 'Medical') {
-                            color = Colors.black;
-                          } else if (word == 'Patient' || word == 'Expert') {
-                            color = AppColors.primaryColor;
-                          }
-                          return TextSpan(
-                            text: word + ' ',
-                            style: TextStyle(
-                              fontSize: 28.0,
-                              fontWeight: FontWeight.bold,
-                              color: color,
-                              fontFamily: 'Poppins',
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Center(
+                child: Column(
+                  children: [
+                    Image.asset(imagePath),
+                    if (isFirstPage)
+                      RichText(
+                        textAlign: TextAlign.center,
+                        text: TextSpan(
+                          text: '',
+                          children: [
+                            TextSpan(
+                              text: 'Rama',
+                              style: TextStyle(
+                                fontSize: 28.0,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.teal,
+                                fontFamily: 'Poppins',
+                              ),
                             ),
-                          );
-                        }).toList(),
+                            TextSpan(
+                              text: 'Pulse',
+                              style: TextStyle(
+                                fontSize: 28.0,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                                fontFamily: 'Poppins',
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else if (isCustomTitle)
+                      RichText(
+                        textAlign: TextAlign.center,
+                        text: TextSpan(
+                          text: '',
+                          children: title.split(' ').map((word) {
+                            Color color = Colors.black;
+                            if (word == 'Advanced' || word == 'Care' || word == 'Medical') {
+                              color = Colors.black;
+                            } else if (word == 'Patient' || word == 'Expert') {
+                              color = AppColors.primaryColor;
+                            }
+                            return TextSpan(
+                              text: word + ' ',
+                              style: TextStyle(
+                                fontSize: 28.0,
+                                fontWeight: FontWeight.bold,
+                                color: color,
+                                fontFamily: 'Poppins',
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      )
+                    else
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 28.0,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Poppins',
+                        ),
                       ),
-                    )
-                  else
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 28.0,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                  SizedBox(height: 10.0),  // Space between title and description
-                  Text(
-                    description,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 20.0,
-                      color: Colors.grey,
-                      fontFamily: 'Poppins',
-                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 20.0), // Space between title and description
+              if (!isFirstPage && description != null)
+                Text(
+                  description!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 20.0,
+                    color: Colors.grey,
+                    fontFamily: 'Poppins',
                   ),
-                ],
+                ),
+            ],
+          ),
+          if (isFirstPage)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 20.0),
+                child: Image.asset(
+                  'assets/ramalogoapp.png', // Make sure to update the path to your image
+                  width: 150.0, // You can adjust the width and height as needed
+                  height: 150.0,
+                ),
               ),
             ),
-          ],
         ],
       ),
     );
