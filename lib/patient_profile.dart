@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'feedback.dart';
-import 'bottomnavigation.dart';
+// import 'bottomnavigation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'homepage.dart'; // Import the Homepage
 import 'PatientLogin.dart';
@@ -37,35 +37,35 @@ class _MainScreenState extends State<MainScreen> {
     @override
     Widget build(BuildContext context) {
       return Scaffold(
-        body: _widgetOptions.elementAt(_selectedIndex),
-        bottomNavigationBar: BottomNav(
-          selectedIndex: _selectedIndex,
-          onItemTapped: _onItemTapped,
-        ),
+        // body: _widgetOptions.elementAt(_selectedIndex),
+        // bottomNavigationBar: BottomNav(
+        //   selectedIndex: _selectedIndex,
+        //   onItemTapped: _onItemTapped,
+        // ),
       );
     }
     return Scaffold(
       body: _widgetOptions.elementAt(_selectedIndex),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: ImageIcon(AssetImage('assets/home.png')),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: ImageIcon(AssetImage('assets/appointment.png')),
-            label: 'Appointments',
-          ),
-          BottomNavigationBarItem(
-            icon: ImageIcon(AssetImage('assets/patient.png')),
-            label: 'Profile',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
-        onTap: _onItemTapped,
-      ),
+      // bottomNavigationBar: BottomNavigationBar(
+      //   items: const <BottomNavigationBarItem>[
+      //     BottomNavigationBarItem(
+      //       icon: ImageIcon(AssetImage('assets/home.png')),
+      //       label: 'Home',
+      //     ),
+      //     BottomNavigationBarItem(
+      //       icon: ImageIcon(AssetImage('assets/appointment.png')),
+      //       label: 'Appointments',
+      //     ),
+      //     BottomNavigationBarItem(
+      //       icon: ImageIcon(AssetImage('assets/patient.png')),
+      //       label: 'Profile',
+      //     ),
+      //   ],
+      //   currentIndex: _selectedIndex,
+      //   selectedItemColor: Colors.green,
+      //   unselectedItemColor: Colors.grey,
+      //   onTap: _onItemTapped,
+      // ),
     );
   }
 }
@@ -200,7 +200,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                 leading: Icon(Icons.calendar_today),
                 title: Text('My Appointments'),
                 onTap: () {
-                                  },
+                },
               ),
               ListTile(
                 leading: Icon(Icons.health_and_safety),
@@ -321,4 +321,3 @@ class BookingAppointmentPage extends StatelessWidget {
     );
   }
 }
-

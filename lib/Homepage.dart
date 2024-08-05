@@ -1,16 +1,13 @@
-import 'package:bottom_navigation/PatientLogin.dart';
-import 'package:bottom_navigation/ViewallSuperSpecialities.dart';
-import 'package:bottom_navigation/colors.dart';
-import 'bottomnavigation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:bottom_navigation/PatientLogin.dart';
+import 'package:bottom_navigation/colors.dart';
 import 'view_all_doctors.dart';
 import 'patient_registration.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'bookappointment.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-
-
+// import 'DoctorListScreen.dart';
 class HomeScreen extends StatefulWidget {
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -76,6 +73,98 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  List<SuperSpecialty> _superSpecialties = [];
+  List<Specialty> _specialties = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchSuperSpecialties().then((data) {
+      setState(() {
+        _superSpecialties = data;
+      });
+    });
+    fetchSpecialties().then((data1) {
+      setState(() {
+        _specialties = data1;
+      });
+    });
+  }
+
+  Future<List<SuperSpecialty>> fetchSuperSpecialties() async {
+    final response = await http.get(Uri.parse('http://192.168.1.166:8081/api/Application/Superspecialitytitles'));
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      return data.map((item) => SuperSpecialty.fromJson(item)).toList();
+    } else {
+      throw Exception('Failed to load super specialties');
+    }
+  }
+
+  Future<List<Specialty>> fetchSpecialties() async {
+    final response = await http.get(Uri.parse('http://192.168.1.166:8081/api/Application/speciality-titles'));
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      return data.map((item) => Specialty.fromJson(item)).toList();
+    } else {
+      throw Exception('Failed to load specialties');
+    }
+  }
+
+  Uint8List _convertBase64ToImage(String base64String) {
+    try {
+      Uint8List bytes = base64Decode(base64String);
+      if (bytes.isEmpty) throw Exception('Empty byte array');
+      return bytes;
+    } catch (e) {
+      print('Error decoding base64 string: $e');
+      return Uint8List(0);
+    }
+  }
+
+  Future<void> sendSpecializationId(int specializationId) async {
+    final url = Uri.parse('http://192.168.1.166:8081/api/Application/SendSpecializationId');
+    final headers = {"Content-Type": "application/json"};
+    final body = json.encode({'specializationId': specializationId});
+
+    try {
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: body,
+      );
+
+      if (response.statusCode == 200) {
+        print('Specialization ID sent successfully');
+      } else {
+        print('Failed to send specialization ID. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error sending specialization ID: $e');
+    }
+  }
+
+  void _onSpecialtyTap(int specializationId, String specializationName) {
+    if (specializationId == 0) {
+      print('Invalid specialization ID');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Invalid specialization ID')));
+      return;
+    }
+
+    sendSpecializationId(specializationId);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DoctorScreen(
+          specializationId: specializationId.toString(),
+          specializationName: specializationName,
+        ),
+      ),
+    );
+  }
 
   List<Map<String, dynamic>> _sections = [
     {
@@ -84,7 +173,7 @@ class _HomePageState extends State<HomePage> {
         name: 'Dr. Anil Bhat',
         specialty: 'Cardiology',
         rating: 4.5,
-        patientStories:30.0,
+        patientStories: 30.0,
         imagePath: 'assets/doctors/dranilbhat.jpg',
         operations: 'Cardiac Surgery, Heart Transplant',
         degrees: 'MBBS, MD, DM Cardiology',
@@ -96,7 +185,7 @@ class _HomePageState extends State<HomePage> {
         name: 'Dr. Sanjeev Rohatgi',
         specialty: 'Ophthalmology',
         rating: 4.5,
-        patientStories:20.0,
+        patientStories: 20.0,
         imagePath: 'assets/doctors/SanjeevRohatgi.jpg',
         operations: 'ENT Surgery, Cochlear Implant',
         degrees: 'MBBS, MS-ENT',
@@ -108,7 +197,7 @@ class _HomePageState extends State<HomePage> {
         name: 'Dr. Arun Kumar',
         specialty: 'General Medicine',
         rating: 4.5,
-        patientStories:34.0,
+        patientStories: 34.0,
         imagePath: 'assets/doctors/arunkumar.jpg',
         operations: 'General Checkup, Diabetes Management',
         degrees: 'MBBS, MD General Medicine',
@@ -120,7 +209,7 @@ class _HomePageState extends State<HomePage> {
         name: 'Dr. Mahesh Gupta',
         specialty: 'General Surgery',
         rating: 4.5,
-        patientStories:23.0,
+        patientStories: 23.0,
         imagePath: 'assets/doctors/MaheshGupta.jpg',
         operations: 'General Checkup',
         degrees: 'MS-Gen-Surgery',
@@ -155,94 +244,8 @@ class _HomePageState extends State<HomePage> {
         description: 'Ophthalmology',
       ),
     },
-    {
-      'type': 'Super_Specialties',
-      'widget': SuperSpecialties(
-        description: 'Cardiology',
-        imagePath: 'assets/cardiology.jpg',
-        details: 'Cardiology deals with disorders of the heart and blood vessels.',
-        bestDoctor: 'Dr. Anil Bhat',
-        call:'7877775530',
-        iconPath: 'assets/super_specialities/Cardiology.png',
-      ),
-    },
-    {
-      'type': 'Super_Specialties',
-      'widget': SuperSpecialties(
-        description: 'Gastroenterology',
-        imagePath: 'assets/super_specialities/Gastro.jpg',
-        details: 'A gastroenterologist is a specialist in gastrointestinal diseases. Gastroenterologists treat all the organs in your digestive system.',
-        bestDoctor: 'Dr. Anil Bhat',
-        call:'7877775530',
-        iconPath: 'assets/super_specialities/Gastroenterology.png',
-      ),
-    },
-    {
-      'type': 'Super_Specialties',
-      'widget': SuperSpecialties(
-        description: 'Nephrology',
-        imagePath: 'assets/super_specialities/nephrology.jpg',
-        details: 'Nephrology is a branch of internal medicine that deals with kidney diseases and disorders.',
-        bestDoctor: 'Dr. DK Sinha',
-        call:'7877775530',
-        iconPath: 'assets/super_specialities/Nephrology.png',
-      ),
-    },
-    {
-      'type': 'Super_Specialties',
-      'widget': SuperSpecialties(
-        description: 'Neurology',
-        imagePath: 'assets/super_specialities/neurology.jpeg',
-        details: 'A neurologist is a medical doctor who diagnoses, treats and manages disorders of the brain and nervous system (brain, spinal cord and nerves).',
-        bestDoctor: 'Dr. Navneet Kumar',
-        call:'7877775530',
-        iconPath: 'assets/super_specialities/Orthopaedics.png',
-      ),
-    },
-    {
-      'type': 'Specialties',
-      'widget': Specialties(
-        description: 'Cardiology',
-        imagePath: 'assets/cardiology.jpg',
-        details: 'Cardiology deals with disorders of the heart and blood vessels.',
-        bestDoctor: 'Dr. Anil Bhat',
-        call:'7877775530',
-        iconPath: 'assets/specialities/Dental.png',
-      ),
-    },
-    {
-      'type': 'Specialties',
-      'widget': Specialties(
-        description: 'Urology',
-        imagePath: 'assets/Urology.jpg',
-        details: 'Urology focuses on surgical and medical diseases of the urinary-tract system.',
-        bestDoctor: 'Dr. R K Singh',
-        call:'7877775530',
-        iconPath: 'assets/specialities/Haematology.png',
-      ),
-    },
-    {
-      'type': 'Specialties',
-      'widget': Specialties(
-        description: 'Colonoscopy',
-        imagePath: 'assets/Colonoscopy.jpg',
-        details: 'Colonoscopy is an endoscopic examination of the large bowel and the distal part of the small bowel.',
-        bestDoctor: 'Dr. Arun Kumar',
-        call:'7877775530',
-        iconPath: 'assets/specialities/Pulmonology.png',
-      ),
-    },
-    {
-      'type': 'Specialties',
-      'widget': Specialties(
-        description: 'Ophthalmology',
-        imagePath: 'assets/Ophthalmology.jpg',
-        details: 'Ophthalmology deals with the anatomy, physiology, and diseases of the eye.',
-        bestDoctor: 'Dr. Anshu Sharma',
-        call:'7877775530',
-        iconPath: 'assets/specialities/Urology.png',
-      ),
-    },
+
+
     {
       'type': 'Services',
       'widget': Services(
@@ -311,16 +314,7 @@ class _HomePageState extends State<HomePage> {
                   .description
                   .toLowerCase()
                   .contains(_searchQuery.toLowerCase())) ||
-          // (section['widget'] is SuperSpecialties &&
-          //     (section['widget'] as SuperSpecialties)
-          //         .description
-          //         .toLowerCase()
-          //         .contains(_searchQuery.toLowerCase())) ||
-          (section['widget'] is Specialties &&
-              (section['widget'] as Specialties)
-                  .description
-                  .toLowerCase()
-                  .contains(_searchQuery.toLowerCase())) ||
+
           (section['widget'] is Services &&
               (section['widget'] as Services)
                   .description
@@ -334,6 +328,7 @@ class _HomePageState extends State<HomePage> {
           .toList();
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -343,11 +338,10 @@ class _HomePageState extends State<HomePage> {
         elevation: 0,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
           children: [
-
             Padding(
-              padding: const EdgeInsets.only(top: 15.0), // Adjust the top padding value as needed
+              padding: const EdgeInsets.only(top: 15.0),
+              // Adjust the top padding value as needed
               child: Image.asset(
                 'assets/ramalogoapp.png', // Update the path to your logo asset
                 height: 60,
@@ -357,82 +351,84 @@ class _HomePageState extends State<HomePage> {
             Row(
               children: [
                 IconButton(
-                    icon: SizedBox(
-                      width: 34,
-                      height: 34,
-                      child: Image.asset('assets/ambulance.png'),
-                    ),
-                    onPressed: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        builder: (BuildContext context) {
-                          return Container(
-                              height: MediaQuery.of(context).size.height * 0.15,
-                              width: MediaQuery.of(context).size.height * 0.5,// Set height to 40% of screen height
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  RichText(
-                                    text: TextSpan(
-                                      children: <TextSpan>[
-                                        TextSpan(
-                                          text: 'Emergency ',
-                                          style: TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 18.0,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        TextSpan(
-                                          text: 'Call,',
-                                          style: TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 18.0,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        TextSpan(
-                                          text: ' Ambulance',
-                                          style: TextStyle(
-                                            color: Colors.red,
-                                            fontSize: 18.0,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  SizedBox(height: 16.0),
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.red, // Background color
-                                      foregroundColor: Colors.white, // Text color
-                                    ),
-                                    child: Text(
-                                      '7877775530',
+                  icon: SizedBox(
+                    width: 34,
+                    height: 34,
+                    child: Image.asset('assets/ambulance.png'),
+                  ),
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (BuildContext context) {
+                        return Container(
+                          height: MediaQuery
+                              .of(context)
+                              .size
+                              .height * 0.15,
+                          width: MediaQuery
+                              .of(context)
+                              .size
+                              .height * 0.5,
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              RichText(
+                                text: TextSpan(
+                                  children: <TextSpan>[
+                                    TextSpan(
+                                      text: 'Emergency ',
                                       style: TextStyle(
-                                        fontSize: 20,
-                                        fontFamily: 'Poppins',
+                                        color: Colors.black,
+                                        fontSize: 18.0,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    onPressed: () {
-                                      _launchDialer('tel:7877775530');
-                                    },
+                                    TextSpan(
+                                      text: 'Call,',
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 18.0,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: ' Ambulance',
+                                      style: TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 18.0,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(height: 16.0),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  // Background color
+                                  foregroundColor: Colors.white, // Text color
+                                ),
+                                child: Text(
+                                  '7877775530',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontFamily: 'Poppins',
                                   ),
-                                ],
-
-                              )
-                          );
-                        },
-                      );
-                    }
-
-
+                                ),
+                                onPressed: () {
+                                  _launchDialer('tel:7877775530');
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
-
-
                 IconButton(
                   icon: SizedBox(
                     width: 34,
@@ -446,11 +442,9 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-
       body: ListView(
         padding: EdgeInsets.all(16.0),
         children: <Widget>[
-          // Search Bar with Shadow
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16.0),
             child: Container(
@@ -462,10 +456,11 @@ class _HomePageState extends State<HomePage> {
                     color: Colors.grey.withOpacity(0.5),
                     spreadRadius: 1,
                     blurRadius: 10,
-                    offset: Offset(0, 3), // changes position of shadow
+                    offset: Offset(0, 3),
                   ),
                 ],
               ),
+
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
@@ -488,56 +483,61 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
-          // "Your Health Matters" banner
           Container(
             padding: EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              color: AppColors.primaryColor,
-              borderRadius: BorderRadius.circular(10.0),
-            ),
-            child: Row(
+            child: Column(
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Your Health Matters',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18.0,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Poppins',
-                        ),
-                      ),
-                      SizedBox(height: 4.0),
-                      Text(
-                        'Explore Advice, Health Tips & More',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14.0,
-                          fontFamily: 'Poppins',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Padding(
-                // padding: EdgeInsets.zero,
-                Image.asset(
-                  'assets/ban_doc.png', // Update the path to your image asset
-                  height: 80,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildMenuButton(
+                      'Book Appointment',
+                      'assets/icon/calendar.png',
+                          () {
+                        // Add your navigation or action code here
+                      },
 
-
+                    ),
+                    // SizedBox(width: 10.0),
+                    _buildMenuButton(
+                      'Book Video Consult',
+                      'assets/icon/video.png',
+                          () {
+                        // Add your navigation or action code here
+                      },
+                      //
+                    ),
+                  ],
                 ),
-                // ),
+                SizedBox(height: 16.0),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildMenuButton(
+                      '   Test  &  Services   ',
+                      'assets/icon/test.png',
+                          () {
+                        // Add your navigation or action code here
+                      },
+
+                    ),
+                    // SizedBox(width: 10.0),
+                    _buildMenuButton(
+                      '  Health  CheckUps ',
+                      'assets/icon/heart.png',
+                          () {
+                        // Add your navigation or action code here
+                      },
+
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
 
           SizedBox(height: 16.0),
-
-          // Section 1
+          // Rest of your code remains unchanged
           // Section 1
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -564,17 +564,16 @@ class _HomePageState extends State<HomePage> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(width: 4.0), // Adjust the width as needed
-                    Icon(
-                      Icons.arrow_forward_sharp,
-                      color: Colors.teal,
-                    ),
+                    //   SizedBox(width: 4.0), // Adjust the width as needed
+                    //   Icon(
+                    //     Icons.arrow_forward_sharp,
+                    //     color: Colors.teal,
+                    //   ),
                   ],
                 ),
               ),
             ],
           ),
-
           SizedBox(height: 10.0),
           Container(
             height: 220,
@@ -606,7 +605,6 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           SizedBox(height: 16.0),
-          // Section 3
           Text(
             'Super Specialties',
             style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
@@ -616,18 +614,34 @@ class _HomePageState extends State<HomePage> {
             height: 100,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              children: _filteredSections
-                  .where((section) => section['type'] == 'Super_Specialties')
-                  .map<Widget>((section) =>
-                  Padding(
+              children: _superSpecialties.map<Widget>((specialty) {
+                return GestureDetector(
+                  onTap: () => _onSpecialtyTap(specialty.id, specialty.specialization),
+                  child: Padding(
                     padding: const EdgeInsets.all(8.0),
-                    child: section['widget'],
-                  ))
-                  .toList(),
+                    child: Column(
+                      children: [
+                        if (specialty.iconBase64.isNotEmpty)
+                          Image.memory(
+                            _convertBase64ToImage(specialty.iconBase64),
+                            height: 60,
+                            width: 60,
+                            errorBuilder: (context, error, stackTrace) {
+                              print('Error building image: $error');
+                              return Icon(Icons.broken_image, size: 60);
+                            },
+                          )
+                        else
+                          Icon(Icons.image_not_supported, size: 60),
+                        Text(specialty.specialization),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
           SizedBox(height: 16.0),
-          // Section 4
           Text(
             'Specialties',
             style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
@@ -637,14 +651,31 @@ class _HomePageState extends State<HomePage> {
             height: 100,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              children: _filteredSections
-                  .where((section) => section['type'] == 'Specialties')
-                  .map<Widget>((section) =>
-                  Padding(
+              children: _specialties.map<Widget>((specialty) {
+                return GestureDetector(
+                  onTap: () => _onSpecialtyTap(specialty.id, specialty.specialization),
+                  child: Padding(
                     padding: const EdgeInsets.all(8.0),
-                    child: section['widget'],
-                  ))
-                  .toList(),
+                    child: Column(
+                      children: [
+                        if (specialty.iconBase64.isNotEmpty)
+                          Image.memory(
+                            _convertBase64ToImage(specialty.iconBase64),
+                            height: 60,
+                            width: 60,
+                            errorBuilder: (context, error, stackTrace) {
+                              print('Error building image: $error');
+                              return Icon(Icons.broken_image, size: 60);
+                            },
+                          )
+                        else
+                          Icon(Icons.image_not_supported, size: 60),
+                        Text(specialty.specialization),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
           SizedBox(height: 16.0),
@@ -686,11 +717,41 @@ class _HomePageState extends State<HomePage> {
                     padding: const EdgeInsets.all(8.0),
                     child: HealthCheckup(
                       description: section['widget'].description,
-                      // tests: section['widget'].tests,
-                      // preparation: section['widget'].preparation,
                     ),
                   ))
                   .toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuButton(String title, String iconPath,
+      VoidCallback onPressed) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        padding: EdgeInsets.all(16.0),
+        backgroundColor: AppColors.primaryColor,
+        shadowColor: Colors.grey.withOpacity(0.5),
+        elevation: 5,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset(iconPath, height: 20, width: 20),
+          SizedBox(width: 4.0),
+          Text(
+            title,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 10.0,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Poppins',
             ),
           ),
         ],
@@ -893,207 +954,79 @@ class OfferCard extends StatelessWidget {
     );
   }
 }
+Widget _buildDepartmentItem(String assetPath, String departmentName) {
+  return Column(
+    children: [
+      Image.asset(
+        assetPath,
+        height: 60,
+        width: 60,
+      ),
+      Text(departmentName),
+    ],
+  );
+}
+class SuperSpecialty {
+  final int id;
+  final String specialization;
+  final String iconBase64;
 
-// Super Specialties Widget
-class SuperSpecialties extends StatelessWidget {
-  final String description;
-  final String imagePath;
-  final String details;
-  final String bestDoctor;
-  final String iconPath; // Changed to String to handle custom icon path
-  final String call;
-
-  SuperSpecialties({
-    required this.description,
-    required this.imagePath,
-    required this.details,
-    required this.bestDoctor,
-    required this.iconPath,
-    required this.call,
+  SuperSpecialty({
+    required this.id,
+    required this.specialization,
+    required this.iconBase64,
   });
 
-  Future<void> _launchDialer(String number) async {
-    final url = 'tel:$number';
-    if (await canLaunch(url)) {
-      await launch(url);
-    } else {
-      throw 'Could not launch $url';
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.asset(imagePath),
-                    ),
-                    SizedBox(height: 15),
-                    Center(child: Text('Description: $description')),
-                    Center(child: Text('Details: $details')),
-                    Center(child: Text('Best Doctor: $bestDoctor')),
-                    Center(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          _launchDialer(call);
-                        },
-                        child: Text('Call Now: $call'),
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: Colors.white, // Foreground color
-                          backgroundColor: Colors.blue, // Background color
-                        ),
-                      ),
-                    ),
-                    // SizedBox(height: 8),
-                    // ElevatedButton(
-                    //   onPressed: () {
-                    //     Navigator.of(context).pop();
-                    //   },
-                    //   child: Text('Close'),
-                    //   style: ElevatedButton.styleFrom(
-                    //     foregroundColor: Colors.white, // Foreground color
-                    //     backgroundColor: Colors.grey, // Background color
-                    //   ),
-                    // ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column( // Changed from Row to Column
-            children: [
-              Image.asset(
-                iconPath,
-                height: 24,
-                width: 24,
-              ),
-              SizedBox(height: 8.0), // Changed from width to height
-              Text(
-                description,
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-        ),
-      ),
+  factory SuperSpecialty.fromJson(Map<String, dynamic> json) {
+    return SuperSpecialty(
+      id: json['id'] ?? 0,
+      specialization: json['specialization'],
+      iconBase64: json['iconBase64'],
     );
   }
 }
 
-// Specialties Widget
-class Specialties extends StatelessWidget {
-  final String description;
-  final String imagePath;
-  final String details;
-  final String bestDoctor;
-  final String iconPath;
-  final String call;
+class Specialty {
+  final int id;
+  final String specialization;
+  final String iconBase64;
 
-  Specialties({
-    required this.description,
-    required this.imagePath,
-    required this.details,
-    required this.bestDoctor,
-    required this.iconPath,
-    required this.call,
+  Specialty({
+    required this.id,
+    required this.specialization,
+    required this.iconBase64,
   });
 
-  Future<void> _launchDialer(String number) async {
-    final Uri url = Uri(scheme: 'tel', path: number);
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
-      throw 'Could not launch $url';
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.asset(imagePath),
-                    ),
-                    SizedBox(height: 15),
-                    Center(child: Text('Description: $description')),
-                    Center(child: Text('Details: $details')),
-                    Center(child: Text('Best Doctor: $bestDoctor')),
-                    Center(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          _launchDialer(call);
-                        },
-                        child: Text('Call Now: $call'),
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: Colors.white, // Foreground color
-                          backgroundColor: Colors.blue, // Background color
-                        ),
-                      ),
-                    ),
-                    // SizedBox(height: 8),
-                    // ElevatedButton(
-                    //   onPressed: () {
-                    //     Navigator.of(context).pop();
-                    //   },
-                    //   child: Text('Close'),
-                    //   style: ElevatedButton.styleFrom(
-                    //     foregroundColor: Colors.white, // Foreground color
-                    //     backgroundColor: Colors.grey, // Background color
-                    //   ),
-                    // ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column( // Changed from Row to Column
-            children: [
-              Image.asset(
-                iconPath,
-                height: 24,
-                width: 24,
-              ),
-              SizedBox(height: 8.0), // Changed from width to height
-              Text(
-                description,
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-        ),
-      ),
+  factory Specialty.fromJson(Map<String, dynamic> json) {
+    return Specialty(
+      id: json['id'] ?? 0,
+      specialization: json['specialization'],
+      iconBase64: json['iconBase64'],
     );
   }
 }
 
+class DoctorScreen extends StatelessWidget {
+  final String specializationId;
+  final String specializationName;
+
+  DoctorScreen({
+    required this.specializationId,
+    required this.specializationName,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(specializationName),
+      ),
+      body: Center(
+        child: Text('Doctors for $specializationName'),
+      ),
+    );
+  }
+}
 // Services Widget
 class Services extends StatelessWidget {
   final String description;
@@ -1163,4 +1096,34 @@ Future<void> _launchDialer(String number) async {
   } else {
     throw 'Could not launch $url';
   }
+}
+
+Widget _buildMenuButton(String title, String iconPath, VoidCallback onPressed, {Color color = Colors.red}) {
+  return Expanded(
+    child: ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color, // Set the background color
+        padding: EdgeInsets.symmetric(vertical: 16.0),
+      ),
+      onPressed: onPressed,
+      child: Column(
+        children: [
+          Image.asset(
+            iconPath,
+            height: 40.0,
+            width: 40.0,
+          ),
+          SizedBox(height: 8.0),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white, // Set the text color
+              fontSize: 16.0,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
