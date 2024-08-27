@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart'; // Import shared_pr
 import 'package:bottom_navigation/PatientLogin.dart';
 import 'Homepage.dart';
 import 'PatientRegistrationApp.dart';
-
+import 'app_config.dart';
 class PatientLogin extends StatefulWidget {
   @override
   _PatientLoginState createState() => _PatientLoginState();
@@ -14,21 +14,21 @@ class PatientLogin extends StatefulWidget {
 
 class _PatientLoginState extends State<PatientLogin> {
   bool _obscureText = true;
-  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _patientidController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   Future<void> _loginPatient() async {
-    final String phoneNo = _phoneController.text;
+    final String patient_id = _patientidController.text;
     final String password = _passwordController.text;
 
     final Map<String, dynamic> payload = {
-      'phone_no': phoneNo,
+      'patient_id':patient_id,
       'password': password,
     };
 
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.1.166:8081/api/Application/PatientLogin'),
+        Uri.parse('${AppConfig.apiUrl1}${AppConfig.patientLoginEndpoint}'),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
@@ -117,7 +117,7 @@ class _PatientLoginState extends State<PatientLogin> {
               ),
             ),
             TextField(
-              controller: _phoneController,
+              controller: _patientidController,
               decoration: InputDecoration(
                 labelText: 'Phone Number',
                 prefixIcon: Icon(Icons.phone),

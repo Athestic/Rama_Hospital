@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'thank_you_screen.dart';
+import 'app_config.dart';
+
 
 void main() {
   runApp(MaterialApp(
@@ -70,7 +72,8 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
 
   Future<void> _fetchStates() async {
     try {
-      final response = await http.get(Uri.parse('http://192.168.1.166:8080/api/PatientRegistration/GetState'));
+      var uri = Uri.parse('${AppConfig.apiUrl1}${AppConfig.patientRegistrationStateEndpoint}');
+      var response = await http.get(uri);
       if (response.statusCode == 200) {
         List<dynamic> statesData = json.decode(response.body);
         setState(() {
@@ -91,7 +94,9 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
 
   Future<void> _fetchCities(int stateId) async {
     try {
-      final response = await http.get(Uri.parse('http://192.168.1.166:8080/api/PatientRegistration/GetCityByState?StateId=$stateId'));
+      final response = await http.get(
+        Uri.parse('${AppConfig.apiUrl1}/HospitalApp/GetCityByState?StateId=$stateId'),
+      );
       if (response.statusCode == 200) {
         List<dynamic> citiesData = json.decode(response.body);
         setState(() {
@@ -112,7 +117,8 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
   }
   Future<void> _fetchReligions() async {
     try {
-      final response = await http.get(Uri.parse('http://192.168.1.166:8080/api/PatientRegistration/GetReligions'));
+      var uri = Uri.parse('${AppConfig.apiUrl1}${AppConfig.patientRegistrationGetReligionsEndpoint}');
+      var response = await http.get(uri);
       if (response.statusCode == 200) {
         List<dynamic> religionsData = json.decode(response.body);
         setState(() {
@@ -135,7 +141,7 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
     try {
       print('Sending patient data: ${json.encode(patientData)}'); // Logging the payload
       final response = await http.post(
-        Uri.parse('http://192.168.1.166:8081/api/Application/PatientRegistrationApp'),
+        Uri.parse('http://192.168.1.179:8081/api/HospitalApp/PatientRegistrationApp'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(patientData),
       );

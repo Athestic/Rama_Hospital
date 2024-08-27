@@ -7,6 +7,10 @@ import 'package:bottom_navigation/colors.dart';
 import 'view_all_doctors.dart';
 import 'patient_registration.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'doctor_list_screen.dart';
+import 'app_config.dart';
+import 'doctor_online.dart';
+
 // import 'DoctorListScreen.dart';
 class HomeScreen extends StatefulWidget {
   @override
@@ -90,12 +94,15 @@ class _HomePageState extends State<HomePage> {
       });
     });
   }
-
   Future<List<SuperSpecialty>> fetchSuperSpecialties() async {
-    final response = await http.get(Uri.parse('http://192.168.1.166:8081/api/Application/Superspecialitytitles'));
+    var uri = Uri.parse('${AppConfig.apiUrl1}${AppConfig.superspecialityEndpoint}');
+    var response = await http.get(uri);
 
     if (response.statusCode == 200) {
       List<dynamic> data = json.decode(response.body);
+      data.forEach((item) {
+        print("SuperSpecialty ID: ${item['id']}");  // Print the ID to check it's not 0
+      });
       return data.map((item) => SuperSpecialty.fromJson(item)).toList();
     } else {
       throw Exception('Failed to load super specialties');
@@ -103,10 +110,15 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<List<Specialty>> fetchSpecialties() async {
-    final response = await http.get(Uri.parse('http://192.168.1.166:8081/api/Application/speciality-titles'));
 
+
+    var uri = Uri.parse('${AppConfig.apiUrl1}${AppConfig.specialityEndpoint}');
+    var response = await http.get(uri);
     if (response.statusCode == 200) {
       List<dynamic> data = json.decode(response.body);
+      data.forEach((item) {
+        print("Specialty ID: ${item['id']}");  // Print the ID to check it's not 0
+      });
       return data.map((item) => Specialty.fromJson(item)).toList();
     } else {
       throw Exception('Failed to load specialties');
@@ -123,48 +135,95 @@ class _HomePageState extends State<HomePage> {
       return Uint8List(0);
     }
   }
-
-  Future<void> sendSpecializationId(int specializationId) async {
-    final url = Uri.parse('http://192.168.1.166:8081/api/Application/SendSpecializationId');
-    final headers = {"Content-Type": "application/json"};
-    final body = json.encode({'specializationId': specializationId});
+  Future<List<Doctor>> fetchDoctorsBySpecialization(int specializationId) async {
+    final url = Uri.parse('${AppConfig.apiUrl1}${AppConfig.getDoctorsBySpecializationEndpoint}?specialization_id=$specializationId');
 
     try {
-      final response = await http.post(
-        url,
-        headers: headers,
-        body: body,
-      );
+      final response = await http.get(url);
 
       if (response.statusCode == 200) {
-        print('Specialization ID sent successfully');
+        List<dynamic> data = json.decode(response.body);
+        return data.map((item) => Doctor.fromJson(item)).toList();
       } else {
-        print('Failed to send specialization ID. Status code: ${response.statusCode}');
+        print('Failed to load doctors with status code: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        throw Exception('Failed to load doctors');
       }
     } catch (e) {
-      print('Error sending specialization ID: $e');
+      print('Error fetching doctors: $e');
+      throw Exception('Failed to load doctors');
     }
   }
 
-  void _onSpecialtyTap(int specializationId, String specializationName) {
-    if (specializationId == 0) {
-      print('Invalid specialization ID');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Invalid specialization ID')));
-      return;
-    }
 
-    sendSpecializationId(specializationId);
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DoctorScreen(
-          specializationId: specializationId.toString(),
-          specializationName: specializationName,
+  void _onSpecialtyTap(int specializationId) async {
+    print('Specialization ID tapped: $specializationId');  // Ensure this prints the correct ID
+
+    try {
+      List<Doctor> doctors = await fetchDoctorsBySpecialization(specializationId);
+      if (doctors.isEmpty) {
+        print('Doctors not found for specialization ID: $specializationId');
+      } else {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => DoctorListScreen(doctors: doctors)),
+        );
+      }
+    } catch (e) {
+      print('Error fetching doctors: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error fetching doctors: $e'),
         ),
-      ),
-    );
+      );
+    }
   }
+
+
+
+
+  // Future<void> sendSpecializationId(int specializationId) async {
+  //   final url = Uri.parse('http://192.168.1.107:8081/api/Application/SendSpecializationId');
+  //   final headers = {"Content-Type": "application/json"};
+  //   final body = json.encode({'specializationId': specializationId});
+  //
+  //   try {
+  //     final response = await http.post(
+  //       url,
+  //       headers: headers,
+  //       body: body,
+  //     );
+  //
+  //     if (response.statusCode == 200) {
+  //       print('Specialization ID sent successfully');
+  //     } else {
+  //       print('Failed to send specialization ID. Status code: ${response.statusCode}');
+  //     }
+  //   } catch (e) {
+  //     print('Error sending specialization ID: $e');
+  //   }
+  // }
+  //
+  // void _onSpecialtyTap(int specializationId, String specializationName) {
+  //   if (specializationId == 0) {
+  //     print('Invalid specialization ID');
+  //     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Invalid specialization ID')));
+  //     return;
+  //   }
+  //
+  //   sendSpecializationId(specializationId);
+  //
+  //   Navigator.push(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (context) => DoctorScreen(
+  //         specializationId: specializationId.toString(),
+  //         specializationName: specializationName,
+  //       ),
+  //     ),
+  //   );
+  // }
 
   List<Map<String, dynamic>> _sections = [
     {
@@ -494,7 +553,12 @@ class _HomePageState extends State<HomePage> {
                       'Book Appointment',
                       'assets/icon/calendar.png',
                           () {
-                        // Add your navigation or action code here
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ViewAllDoctors(),
+                              ),
+                            );// Add your navigation or action code here
                       },
 
                     ),
@@ -503,7 +567,12 @@ class _HomePageState extends State<HomePage> {
                       'Book Video Consult',
                       'assets/icon/video.png',
                           () {
-                        // Add your navigation or action code here
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => doctoronline(),
+                              ),
+                            );// // Add your navigation or action code here
                       },
                       //
                     ),
@@ -589,6 +658,11 @@ class _HomePageState extends State<HomePage> {
                   .toList(),
             ),
           ),
+          SizedBox(height: 16.0),
+          Text(
+            'Special Offers',
+            style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+          ),
           SizedBox(height: 8.0),
           Container(
             height: 100,
@@ -616,7 +690,10 @@ class _HomePageState extends State<HomePage> {
               scrollDirection: Axis.horizontal,
               children: _superSpecialties.map<Widget>((specialty) {
                 return GestureDetector(
-                  onTap: () => _onSpecialtyTap(specialty.id, specialty.specialization),
+                  onTap: () {
+                    print('Tapped Specialty with ID: ${specialty.specializationId}');  // Debug the ID being tapped
+                    _onSpecialtyTap(specialty.specializationId);
+                  },
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Column(
@@ -653,7 +730,7 @@ class _HomePageState extends State<HomePage> {
               scrollDirection: Axis.horizontal,
               children: _specialties.map<Widget>((specialty) {
                 return GestureDetector(
-                  onTap: () => _onSpecialtyTap(specialty.id, specialty.specialization),
+                  onTap: () => _onSpecialtyTap(specialty.specializationId),
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Column(
@@ -967,41 +1044,41 @@ Widget _buildDepartmentItem(String assetPath, String departmentName) {
   );
 }
 class SuperSpecialty {
-  final int id;
+  final int specializationId;
   final String specialization;
   final String iconBase64;
 
   SuperSpecialty({
-    required this.id,
+    required this.specializationId,
     required this.specialization,
     required this.iconBase64,
   });
 
   factory SuperSpecialty.fromJson(Map<String, dynamic> json) {
     return SuperSpecialty(
-      id: json['id'] ?? 0,
-      specialization: json['specialization'],
-      iconBase64: json['iconBase64'],
+      specializationId: json['specializationId'] ?? 0,  // Ensure this maps to the correct field
+      specialization: json['specialization'] ?? '',
+      iconBase64: json['iconBase64'] ?? '',
     );
   }
 }
 
 class Specialty {
-  final int id;
+  final int specializationId;
   final String specialization;
   final String iconBase64;
 
   Specialty({
-    required this.id,
+    required this.specializationId,
     required this.specialization,
     required this.iconBase64,
   });
 
   factory Specialty.fromJson(Map<String, dynamic> json) {
     return Specialty(
-      id: json['id'] ?? 0,
-      specialization: json['specialization'],
-      iconBase64: json['iconBase64'],
+      specializationId: json['specializationId'] ?? 0,  // Ensure this maps to the correct field
+      specialization: json['specialization'] ?? '',
+      iconBase64: json['iconBase64'] ?? '',
     );
   }
 }

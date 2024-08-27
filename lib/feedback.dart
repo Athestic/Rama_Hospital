@@ -6,10 +6,8 @@ class FeedbackScreen extends StatefulWidget {
 }
 
 class _FeedbackScreenState extends State<FeedbackScreen> {
-  String _selectedCategory = 'Doctors'; // Default selected category
+  String _selectedCategory = 'Doctors'; // Fixed category
   String _feedback = ''; // User feedback
-
-  final List<String> _categories = ['Doctors', 'Application', 'Services'];
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +17,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.of(context).pop(); // Navigate to the previous screen
+            Navigator.of(context).pop(); // Pops the current screen
           },
         ),
       ),
@@ -36,24 +34,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
             ),
             SizedBox(height: 20),
             Text(
-              'Category',
+              'Category: $_selectedCategory', // Directly showing the fixed category
               style: TextStyle(fontSize: 16),
-            ),
-            SizedBox(height: 8),
-            DropdownButton<String>(
-              isExpanded: true,
-              value: _selectedCategory,
-              onChanged: (String? newValue) {
-                setState(() {
-                  _selectedCategory = newValue!;
-                });
-              },
-              items: _categories.map<DropdownMenuItem<String>>((String category) {
-                return DropdownMenuItem<String>(
-                  value: category,
-                  child: Text(category),
-                );
-              }).toList(),
             ),
             SizedBox(height: 20),
             Text(
@@ -78,7 +60,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
               child: ElevatedButton(
                 onPressed: () {
                   // Handle the submit action here
-                  // For now, just showing a dialog with the selected category and feedback
                   showDialog(
                     context: context,
                     builder: (BuildContext context) {

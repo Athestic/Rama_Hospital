@@ -1,25 +1,24 @@
 import 'package:flutter/material.dart';
 import 'patient_registration.dart';
 
-class ViewAllDoctors extends StatelessWidget {
+class doctoronline extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Our Medical Experts',
-        style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
         ),
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
             DoctorCard(
-              name: 'Dr. Mahesh Gupta ',
+              name: 'Dr. Mahesh Gupta',
               specialty: 'General Medicine',
               experience: '29 Years',
               rating: 87,
               patientStories: 69,
-              availability: 'Mon, Tue & Fri',
               imagePath: 'assets/doctors/MaheshGupta.jpg', // Update with actual image path
             ),
             DoctorCard(
@@ -28,8 +27,7 @@ class ViewAllDoctors extends StatelessWidget {
               experience: '33+ Years',
               rating: 95,
               patientStories: 100,
-              availability: 'Mon, Tue & Fri',
-              imagePath: 'assets/doctors/dranilbhat.jpg', // Update with actual image path
+             imagePath: 'assets/doctors/dranilbhat.jpg', // Update with actual image path
             ),
             DoctorCard(
               name: 'Dr. Ravish Kumar Verma',
@@ -37,7 +35,6 @@ class ViewAllDoctors extends StatelessWidget {
               experience: '6+ Years',
               rating: 95,
               patientStories: 30,
-              availability: 'Mon, Tue & Fri',
               imagePath: 'assets/doctors/SanjeevRohatgi.jpg', // Update with actual image path
             ),
             // Add more DoctorCard widgets as needed
@@ -54,7 +51,6 @@ class DoctorCard extends StatelessWidget {
   final String experience;
   final int rating;
   final int patientStories;
-  final String availability;
   final String imagePath;
 
   DoctorCard({
@@ -63,7 +59,6 @@ class DoctorCard extends StatelessWidget {
     required this.experience,
     required this.rating,
     required this.patientStories,
-    required this.availability,
     required this.imagePath,
   });
 
@@ -117,18 +112,14 @@ class DoctorCard extends StatelessWidget {
                       ],
                     ),
                     SizedBox(height: 8),
-                    Text(
-                      'Availability',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      availability,
-                      style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-                    ),
-                  ],
+                    // Text(
+                    //   'Availability',
+                    //   style: TextStyle(
+                    //     fontSize: 16,
+                    //     fontWeight: FontWeight.bold,
+                    //   ),
+                    // ),
+                                   ],
                 ),
               ),
               ElevatedButton(
