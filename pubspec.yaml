@@ -1,4 +1,4 @@
-name: bottom_navigation
+name: global
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
@@ -30,17 +30,25 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  qr_flutter: ^4.1.0
+  qr_flutter: ^4.0.0
   http: ^0.13.3
   lottie: ^2.2.0
   url_launcher: ^6.0.20
   shared_preferences: ^2.0.6
   flutter_rating_bar: ^4.0.0
   image_picker: ^0.8.7+3
-  path_provider: ^2.0.15
+  path_provider: ^2.0.11
   permission_handler: ^11.1.0
   pdf: ^3.10.2
   printing: ^5.13.2
+  youtube_player_flutter: ^8.0.0
+  flutter_local_notifications: ^12.0.4
+  image: ^4.2.0
+  sizer: ^2.0.15
+  open_file: ^3.2.1
+  table_calendar: ^3.0.0
+
+
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -81,75 +89,52 @@ flutter:
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
   assets:
-    - "assets/doctor.jpg"
-    - "assets/hospital.jpg"
-    - "assets/nasir.jpg"
-    - "assets/Rama.jpg"
-    - "assets/health.jpg"
+
+
     - "assets/ramalogoapp.png"
+    - "assets/logo/mainlogo.png"
     - "assets/Ramalogobgr.png"
-    - "assets/anilbhat.jpg"
     - "assets/home.png"
-    - "assets/splash/heart_splash.png"
     - "assets/appointment.png"
     - "assets/patient.png"
     - "assets/thankyou.png"
-    - "assets/doctors/splash/splash.json"
-    - "assets/splash_doct.png"
-    - "assets/splash.jpg"
     - "assets/ambulance.png"
     - "assets/offer.png"
     - "assets/Reg_Patient.png"
-    - "assets/ban_doc.png"
-    - "assets/splash_doctor.jpg"
-    - "assets/icon/heart.png"
-    - "assets/icon/test.png"
-    - "assets/icon/video.png"
-    - "assets/icon/calendar.png"
-    - "assets/doctors/AnshuSharma.jpg"
-    - "assets/doctors/AnubhaSingh.jpg"
-    - "assets/doctors/arunkumar.jpg"
-    - "assets/doctors/BarshaBanerjee.jpg"
-    - "assets/doctors/BipinChandrajoshi.jpg"
-    - "assets/doctors/dranilbhat.jpg"
-    - "assets/doctors/MaheshGupta.jpg"
-    - "assets/doctors/nasir.jpg"
-    - "assets/doctors/NavneetKumar.jpg"
-    - "assets/doctors/RaghvendraNarayan.jpg"
-    - "assets/doctors/RavishKumarVerma.jpg"
-    - "assets/doctors/RKSingh.jpg"
-    - "assets/doctors/SanjeevRohatgi.jpg"
-    - "assets/doctors/ShaileshChandraKaran.jpg"
-    - "assets/Urology.jpg"
-    - "assets/Colonoscopy.jpg"
-    - "assets/cardiology.jpg"
-    - "assets/Ophthalmology.jpg"
-    - "assets/doctor_banner.png"
-    - "assets/icon/Gastroenterology.png"
-    - "assets/super_specialities/Gastroenterology.png"
-    - "assets/super_specialities/Cardiology.png"
-    - "assets/super_specialities/Nephrology.png"
-    - "assets/super_specialities/Orthopaedics.png"
-    - "assets/specialities/Dental.png"
-    - "assets/specialities/Haematology.png"
-    - "assets/specialities/Pulmonology.png"
-    - "assets/specialities/Urology.png"
-  # healthcheckup
+    - "assets/specialities/specialoffer2.jpeg"
+    - "assets/specialities/specialoffer1.jpeg"
+    - "assets/specialities/speacialoffer.jpeg"
+    - 'assets/specialities/card1.jpg'
+    - 'assets/specialities/card2.jpg'
+    - 'assets/specialities/card3.jpg'
+    - 'assets/specialities/card4.jpg'
+    - 'assets/specialities/card5.jpg'
+    - 'assets/specialities/card6.jpg'
+    - 'assets/specialities/card7.jpg'
+    - 'assets/specialities/card8.jpg'
+    - 'assets/specialities/card9.jpg'
+    - "assets/homeCon/lab.jpeg"
+    - "assets/logo/person.jpeg"
+    - "assets/specialities/Diabetes.png"
+    - "assets/specialities/Silver.png"
+    - "assets/specialities/Womens.png"
 
-    - "assets/kanpur/kanpur_healthcheckup.jpg"
-    - "assets/kanpur/kanpur_healthcheckup.jpg"
-    - "assets/kanpur/kanpur_healthcheckup2.jpg"
-    - "assets/kanpur/kanpur_healthcheckup3.jpg"
-    - "assets/kanpur/kanpur_healthcheckup4.jpg"
-    - "assets/kanpur/kanpur_healthchekup5.jpg"
+
+
+    # homwContainer
+    - "assets/homeCon/Capsule & Pill.png"
+    - "assets/homeCon/Stethoscope.png"
+    - "assets/homeCon/img_1.png"
+    - "assets/homeCon/img.png"
+    - "assets/homeCon/hospital.png"
+
 
   #splash
-    - "assets/splash/heart_splash.png"
     - "assets/splash/splash1.png"
     - "assets/splash/splash2.png"
     - "assets/splash/splash3.png"
- #animation
-    - "assets/logoani.json"
+    - "assets/splash/splashscreenlogo.png"
+
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
 

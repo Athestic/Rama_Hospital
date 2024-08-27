@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'view_all_doctors.dart';
-import 'package:bottom_navigation/Homepage.dart';
+import 'Homepage.dart';
 import 'dart:async';
 import 'colors.dart';
+import 'package:sizer/sizer.dart';
 
 void main() {
   runApp(MyApp());
@@ -11,13 +11,17 @@ void main() {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Medical Solution',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      debugShowCheckedModeBanner: false,
-      home: SliderSplashScreen(),
+    return Sizer(
+      builder: (context, orientation, deviceType) {
+        return MaterialApp(
+          title: 'Flutter Medical Solution',
+          theme: ThemeData(
+            primarySwatch: Colors.blue,
+          ),
+          debugShowCheckedModeBanner: false,
+          home: SliderSplashScreen(),
+        );
+      },
     );
   }
 }
@@ -35,7 +39,7 @@ class _SliderSplashScreenState extends State<SliderSplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration(seconds: 4), () {
+    Future.delayed(Duration(seconds: 3), () {
       _pageController.nextPage(
         duration: Duration(milliseconds: 500),
         curve: Curves.easeIn,
@@ -45,21 +49,12 @@ class _SliderSplashScreenState extends State<SliderSplashScreen> {
 
   List<Widget> _pages = [
     SplashPage(
-      imagePath: 'assets/splash/heart_splash.png',
-      title: 'RamaPulse',
-      description: 'Rama Hospital',
+      imagePath: 'assets/splash/splashscreenlogo.png',
       isFirstPage: true,
     ),
     SplashPage(
       imagePath: 'assets/splash/splash2.png',
-      title: 'Advanced Patient Care',
-      description: 'Comprehensive Treatment Solutions',
-      isCustomTitle: true,
-    ),
-    SplashPage(
-      imagePath: 'assets/splash/splash3.png',
-      title: 'Expert Medical Team',
-      description: 'Dedicated to Your Health',
+      title: 'Care Beyond Boundaries',
       isCustomTitle: true,
     ),
   ];
@@ -67,12 +62,7 @@ class _SliderSplashScreenState extends State<SliderSplashScreen> {
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      onWillPop: () async {
-        if (_splashSeen) {
-          return true;
-        }
-        return false;
-      },
+      onWillPop: () async => _splashSeen,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Stack(
@@ -86,25 +76,22 @@ class _SliderSplashScreenState extends State<SliderSplashScreen> {
                   _currentPage = index;
                 });
               },
-              itemBuilder: (context, index) {
-                return _pages[index];
-              },
+              itemBuilder: (context, index) => _pages[index],
             ),
             if (_currentPage != 0)
               Positioned(
-                bottom: 20.0,
-                left: 20.0,
+                bottom: 2.h,
+                left: 4.w,
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
                   children: List.generate(_pages.length - 1, (index) {
                     return AnimatedContainer(
                       duration: Duration(milliseconds: 400),
-                      margin: EdgeInsets.symmetric(horizontal: 5.0),
-                      height: 10.0,
-                      width: (_currentPage - 1) == index ? 20.0 : 10.0,
+                      margin: EdgeInsets.symmetric(horizontal: 1.w),
+                      height: 1.2.h,
+                      width: (_currentPage - 1) == index ? 4.w : 2.w,
                       decoration: BoxDecoration(
                         color: (_currentPage - 1) == index ? Colors.teal : Colors.green,
-                        borderRadius: BorderRadius.circular(5.0),
+                        borderRadius: BorderRadius.circular(1.w),
                       ),
                     );
                   }),
@@ -142,121 +129,61 @@ class _SliderSplashScreenState extends State<SliderSplashScreen> {
 
 class SplashPage extends StatelessWidget {
   final String imagePath;
-  final String title;
-  final String? description;
+  final String? title;
   final bool isFirstPage;
   final bool isCustomTitle;
 
   SplashPage({
     required this.imagePath,
-    required this.title,
-    this.description,
+    this.title,
     this.isFirstPage = false,
     this.isCustomTitle = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     return Container(
       color: Colors.white,
-      child: Stack(
-        children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Center(
-                child: Column(
-                  children: [
-                    Image.asset(imagePath),
-                    if (isFirstPage)
-                      RichText(
-                        textAlign: TextAlign.center,
-                        text: TextSpan(
-                          text: '',
-                          children: [
-                            TextSpan(
-                              text: 'Rama',
-                              style: TextStyle(
-                                fontSize: 28.0,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.teal,
-                                fontFamily: 'Poppins',
-                              ),
-                            ),
-                            TextSpan(
-                              text: 'Pulse',
-                              style: TextStyle(
-                                fontSize: 28.0,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                                fontFamily: 'Poppins',
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else if (isCustomTitle)
-                      RichText(
-                        textAlign: TextAlign.center,
-                        text: TextSpan(
-                          text: '',
-                          children: title.split(' ').map((word) {
-                            Color color = Colors.black;
-                            if (word == 'Advanced' || word == 'Care' || word == 'Medical') {
-                              color = Colors.black;
-                            } else if (word == 'Patient' || word == 'Expert') {
-                              color = AppColors.primaryColor;
-                            }
-                            return TextSpan(
-                              text: word + ' ',
-                              style: TextStyle(
-                                fontSize: 28.0,
-                                fontWeight: FontWeight.bold,
-                                color: color,
-                                fontFamily: 'Poppins',
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      )
-                    else
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 28.0,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Poppins',
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 20.0), // Space between title and description
-              if (!isFirstPage && description != null)
-                Text(
-                  description!,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20.0,
-                    color: Colors.grey,
-                    fontFamily: 'Poppins',
+      padding: EdgeInsets.symmetric(horizontal: 5.w),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: isLandscape ? MainAxisAlignment.start : MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              imagePath,
+              width: isLandscape ? 50.w : 70.w,
+              height: isLandscape ? 45.h : 45.h,
+            ),
+            if (!isFirstPage)
+              if (isCustomTitle)
+                Padding(
+                  padding: EdgeInsets.only(top: 2.h),
+                  child: RichText(
+                    textAlign: TextAlign.center,
+                    text: TextSpan(
+                      children: title!.split(' ').map((word) {
+                        Color color = AppColors.secondaryColor;
+                        if (word == 'Care' || word == 'Boundaries') {
+                          color = AppColors.primaryColor;
+                        } else if (word == 'Beyond') {
+                          color = AppColors.secondaryColor;
+                        }
+                        return TextSpan(
+                          text: word + ' ',
+                          style: TextStyle(
+                            fontSize: isLandscape ? 4.w : 6.w,
+                            fontWeight: FontWeight.bold,
+                            color: color,
+                            fontFamily: 'Poppins',
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ),
                 ),
-            ],
-          ),
-          if (isFirstPage)
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 20.0),
-                child: Image.asset(
-                  'assets/ramalogoapp.png', // Make sure to update the path to your image
-                  width: 150.0, // You can adjust the width and height as needed
-                  height: 150.0,
-                ),
-              ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

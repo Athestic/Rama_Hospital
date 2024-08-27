@@ -1,418 +1,186 @@
+
+import 'package:global/Healthpackages.dart';
+import 'package:global/Medicine.dart';
+import 'package:global/bookappointment.dart';
+import 'package:global/feedback.dart';
+import 'package:global/laborderlist.dart';
+import 'package:global/labtest.dart';
+import 'package:global/pharmaorderlist.dart';
+import 'healthrecord.dart';
+import 'patient_profile.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'dart:typed_data';
-import 'package:bottom_navigation/PatientLogin.dart';
-import 'package:bottom_navigation/colors.dart';
-import 'view_all_doctors.dart';
+import 'PatientLogin.dart';
+import 'colors.dart';
 import 'patient_registration.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'doctor_list_screen.dart';
-import 'app_config.dart';
-import 'doctor_online.dart';
+import 'doctorappointment.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'privacy.dart';
+import 'termsandcondition.dart';
 
-// import 'DoctorListScreen.dart';
 class HomeScreen extends StatefulWidget {
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
+  int _selectedIndex = 1;
+  String? patientId;
+  String? patientImage; // Store patient image
+  String? patientName = "Hello, User"; // Default patient name if not logged in
 
-  static List<Widget> _widgetOptions = <Widget>[
-    HomePage(),
-    Container(child: Center(child: Text('Appointments'))),
-    PatientLogin(), // Add PatientLogin screen to the list
-    PatientRegistrationForm(),
-  ];
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+  // Method to get the correct widget based on the selected index
+  Widget get _currentPage {
+    switch (_selectedIndex) {
+      case 0:
+        return PatientLogin(); // Profile page
+      case 1:
+        return HomePage(); // Home page
+      case 2:
+        return BookingAppointmentPage(patientId: patientId ?? ''); // Appointment page
+      default:
+        return HomePage(); // Default to HomePage
+    }
   }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: _widgetOptions.elementAt(_selectedIndex),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.green, // Set the background color to green
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
-        ),
-        child: BottomNavigationBar(
-          items: const <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
-              icon: ImageIcon(AssetImage('assets/home.png')),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: ImageIcon(AssetImage('assets/appointment.png')),
-              label: 'Appointments',
-            ),
-            BottomNavigationBarItem(
-              icon: ImageIcon(AssetImage('assets/patient.png')),
-              label: 'Profile',
-            ),
-          ],
-          currentIndex: _selectedIndex,
-          selectedItemColor: Colors.green, // Selected item color
-          unselectedItemColor: Colors.grey,
-          onTap: _onItemTapped,
-        ),
-      ),
-    );
-  }
-}
-class HomePage extends StatefulWidget {
-  @override
-  _HomePageState createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
-  List<SuperSpecialty> _superSpecialties = [];
-  List<Specialty> _specialties = [];
 
   @override
   void initState() {
     super.initState();
-    fetchSuperSpecialties().then((data) {
-      setState(() {
-        _superSpecialties = data;
-      });
-    });
-    fetchSpecialties().then((data1) {
-      setState(() {
-        _specialties = data1;
-      });
-    });
+    _checkLoginAndFetchPatientData(); // Fetch patient data if logged in
+    _getPatientId();
   }
-  Future<List<SuperSpecialty>> fetchSuperSpecialties() async {
-    var uri = Uri.parse('${AppConfig.apiUrl1}${AppConfig.superspecialityEndpoint}');
-    var response = await http.get(uri);
 
-    if (response.statusCode == 200) {
-      List<dynamic> data = json.decode(response.body);
-      data.forEach((item) {
-        print("SuperSpecialty ID: ${item['id']}");  // Print the ID to check it's not 0
-      });
-      return data.map((item) => SuperSpecialty.fromJson(item)).toList();
+  Future<void> _getPatientId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    patientId = prefs.getString('patientId'); // Get the saved patientId
+    setState(() {}); // Update the UI after fetching the patientId
+  }
+
+  // Method to check login and fetch patient data
+  Future<void> _checkLoginAndFetchPatientData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final patientId = prefs.getString('patientId');
+    final token = prefs.getString('jwtToken');
+
+    if (patientId != null && token != null) {
+      // Patient is logged in, fetch patient data
+      await _fetchPatientData(patientId, token);
     } else {
-      throw Exception('Failed to load super specialties');
-    }
-  }
-
-  Future<List<Specialty>> fetchSpecialties() async {
-
-
-    var uri = Uri.parse('${AppConfig.apiUrl1}${AppConfig.specialityEndpoint}');
-    var response = await http.get(uri);
-    if (response.statusCode == 200) {
-      List<dynamic> data = json.decode(response.body);
-      data.forEach((item) {
-        print("Specialty ID: ${item['id']}");  // Print the ID to check it's not 0
+      // Patient not logged in, set default values
+      setState(() {
+        patientImage = null; // No image, use default image
+        patientName = "Hello, User";
       });
-      return data.map((item) => Specialty.fromJson(item)).toList();
-    } else {
-      throw Exception('Failed to load specialties');
     }
   }
 
-  Uint8List _convertBase64ToImage(String base64String) {
+  // Fetch patient data from the API
+  Future<void> _fetchPatientData(String patientId, String token) async {
     try {
-      Uint8List bytes = base64Decode(base64String);
-      if (bytes.isEmpty) throw Exception('Empty byte array');
-      return bytes;
-    } catch (e) {
-      print('Error decoding base64 string: $e');
-      return Uint8List(0);
-    }
-  }
-  Future<List<Doctor>> fetchDoctorsBySpecialization(int specializationId) async {
-    final url = Uri.parse('${AppConfig.apiUrl1}${AppConfig.getDoctorsBySpecializationEndpoint}?specialization_id=$specializationId');
-
-    try {
-      final response = await http.get(url);
+      final response = await http.get(
+        Uri.parse(
+            'http://192.168.1.106:8081/api/HospitalApp/GetPatientById?PatientId=$patientId'),
+        headers: {
+          'Authorization': 'Bearer $token', // Add authentication token
+        },
+      );
 
       if (response.statusCode == 200) {
-        List<dynamic> data = json.decode(response.body);
-        return data.map((item) => Doctor.fromJson(item)).toList();
+        final data = json.decode(response.body);
+
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('patientImage', data['patientImage']);
+        await prefs.setString('patientName', data['first_name']);
+
+        // Trigger an update in the drawer immediately after fetching data
+        setState(() {
+          patientImage = data['patientImage'];
+          patientName = "Hello, ${data['first_name']}";
+        });
       } else {
-        print('Failed to load doctors with status code: ${response.statusCode}');
-        print('Response body: ${response.body}');
-        throw Exception('Failed to load doctors');
+        print('Failed to load patient data');
       }
     } catch (e) {
-      print('Error fetching doctors: $e');
-      throw Exception('Failed to load doctors');
+      print('Error fetching patient data: $e');
     }
   }
 
+  // Function to handle tab navigation in the BottomNavigationBar
+  void _onItemTapped(int index) async {
+    if (index == 0) {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final patientId = prefs.getString('patientId');
+      final token = prefs.getString('jwtToken');
 
-
-  void _onSpecialtyTap(int specializationId) async {
-    print('Specialization ID tapped: $specializationId');  // Ensure this prints the correct ID
-
-    try {
-      List<Doctor> doctors = await fetchDoctorsBySpecialization(specializationId);
-      if (doctors.isEmpty) {
-        print('Doctors not found for specialization ID: $specializationId');
-      } else {
+      if (patientId != null && token != null) {
+        // If the user is logged in, navigate to the profile screen
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => DoctorListScreen(doctors: doctors)),
+          MaterialPageRoute(
+              builder: (context) => PatientProfileScreen(patientId: patientId)),
+        );
+      } else {
+        // If the user is not logged in, navigate to the login screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => PatientLogin()),
         );
       }
-    } catch (e) {
-      print('Error fetching doctors: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error fetching doctors: $e'),
-        ),
-      );
-    }
-  }
-
-
-
-
-  // Future<void> sendSpecializationId(int specializationId) async {
-  //   final url = Uri.parse('http://192.168.1.107:8081/api/Application/SendSpecializationId');
-  //   final headers = {"Content-Type": "application/json"};
-  //   final body = json.encode({'specializationId': specializationId});
-  //
-  //   try {
-  //     final response = await http.post(
-  //       url,
-  //       headers: headers,
-  //       body: body,
-  //     );
-  //
-  //     if (response.statusCode == 200) {
-  //       print('Specialization ID sent successfully');
-  //     } else {
-  //       print('Failed to send specialization ID. Status code: ${response.statusCode}');
-  //     }
-  //   } catch (e) {
-  //     print('Error sending specialization ID: $e');
-  //   }
-  // }
-  //
-  // void _onSpecialtyTap(int specializationId, String specializationName) {
-  //   if (specializationId == 0) {
-  //     print('Invalid specialization ID');
-  //     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Invalid specialization ID')));
-  //     return;
-  //   }
-  //
-  //   sendSpecializationId(specializationId);
-  //
-  //   Navigator.push(
-  //     context,
-  //     MaterialPageRoute(
-  //       builder: (context) => DoctorScreen(
-  //         specializationId: specializationId.toString(),
-  //         specializationName: specializationName,
-  //       ),
-  //     ),
-  //   );
-  // }
-
-  List<Map<String, dynamic>> _sections = [
-    {
-      'type': 'Top Doctor',
-      'widget': DoctorCard(
-        name: 'Dr. Anil Bhat',
-        specialty: 'Cardiology',
-        rating: 4.5,
-        patientStories: 30.0,
-        imagePath: 'assets/doctors/dranilbhat.jpg',
-        operations: 'Cardiac Surgery, Heart Transplant',
-        degrees: 'MBBS, MD, DM Cardiology',
-      ),
-    },
-    {
-      'type': 'Top Doctor',
-      'widget': DoctorCard(
-        name: 'Dr. Sanjeev Rohatgi',
-        specialty: 'Ophthalmology',
-        rating: 4.5,
-        patientStories: 20.0,
-        imagePath: 'assets/doctors/SanjeevRohatgi.jpg',
-        operations: 'ENT Surgery, Cochlear Implant',
-        degrees: 'MBBS, MS-ENT',
-      ),
-    },
-    {
-      'type': 'Top Doctor',
-      'widget': DoctorCard(
-        name: 'Dr. Arun Kumar',
-        specialty: 'General Medicine',
-        rating: 4.5,
-        patientStories: 34.0,
-        imagePath: 'assets/doctors/arunkumar.jpg',
-        operations: 'General Checkup, Diabetes Management',
-        degrees: 'MBBS, MD General Medicine',
-      ),
-    },
-    {
-      'type': 'Top Doctor',
-      'widget': DoctorCard(
-        name: 'Dr. Mahesh Gupta',
-        specialty: 'General Surgery',
-        rating: 4.5,
-        patientStories: 23.0,
-        imagePath: 'assets/doctors/MaheshGupta.jpg',
-        operations: 'General Checkup',
-        degrees: 'MS-Gen-Surgery',
-      ),
-    },
-
-    {
-      'type': 'Special Offer',
-      'widget': OfferCard(
-        title: '20% OFF',
-        description: 'Cardiology',
-      ),
-    },
-    {
-      'type': 'Special Offer',
-      'widget': OfferCard(
-        title: '30% OFF',
-        description: 'Full Body Checkup',
-      ),
-    },
-    {
-      'type': 'Special Offer',
-      'widget': OfferCard(
-        title: '20% OFF',
-        description: 'Colonoscopy',
-      ),
-    },
-    {
-      'type': 'Special Offer',
-      'widget': OfferCard(
-        title: '30% OFF',
-        description: 'Ophthalmology',
-      ),
-    },
-
-
-    {
-      'type': 'Services',
-      'widget': Services(
-        description: 'Wards & Room',
-      ),
-    },
-    {
-      'type': 'Services',
-      'widget': Services(
-        description: 'Lab Tests ',
-      ),
-    },
-    {
-      'type': 'Services',
-      'widget': Services(
-        description: 'Emergency',
-      ),
-    },
-    {
-      'type': 'Services',
-      'widget': Services(
-        description: 'Pharma',
-      ),
-    },
-    {
-      'type': 'healthcheckup',
-      'widget': HealthCheckup(
-        description: 'Hapur',
-      ),
-    },
-    {
-      'type': 'healthcheckup',
-      'widget': HealthCheckup(
-        description: 'Mandhana ',
-      ),
-    },
-    {
-      'type': 'healthcheckup',
-      'widget': HealthCheckup(
-        description: 'Lakhanpur',
-      ),
-    },
-    {
-      'type': 'healthcheckup',
-      'widget': HealthCheckup(
-        description: 'Noida',
-      ),
-    },
-  ];
-
-  List<Map<String, dynamic>> get _filteredSections {
-    if (_searchQuery.isEmpty) {
-      return _sections;
     } else {
-      return _sections
-          .where((section) =>
-      section['type'].toString().toLowerCase().contains(
-          _searchQuery.toLowerCase()) ||
-          (section['widget'] is DoctorCard &&
-              (section['widget'] as DoctorCard)
-                  .name
-                  .toLowerCase()
-                  .contains(_searchQuery.toLowerCase())) ||
-          (section['widget'] is OfferCard &&
-              (section['widget'] as OfferCard)
-                  .description
-                  .toLowerCase()
-                  .contains(_searchQuery.toLowerCase())) ||
-
-          (section['widget'] is Services &&
-              (section['widget'] as Services)
-                  .description
-                  .toLowerCase()
-                  .contains(_searchQuery.toLowerCase())) ||
-          (section['widget'] is HealthCheckup &&
-              (section['widget'] as HealthCheckup)
-                  .description
-                  .toLowerCase()
-                  .contains(_searchQuery.toLowerCase())))
-          .toList();
+      // For Home and Appointment tabs
+      setState(() {
+        _selectedIndex = index;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Get screen dimensions
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     return Scaffold(
-      appBar: AppBar(
+
+
+    appBar: _selectedIndex == 1 ? AppBar(
         backgroundColor: Colors.white,
         automaticallyImplyLeading: false,
         elevation: 0,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            Builder(
+              builder: (BuildContext context) {
+                return IconButton(
+                  icon: CircleAvatar(
+                    radius: 20,
+                    backgroundImage: patientImage != null
+                        ? MemoryImage(base64Decode(patientImage!))
+                        : AssetImage('assets/logo/person.jpeg') as ImageProvider,
+                  ),
+                  onPressed: () {
+                    Scaffold.of(context).openDrawer();
+                  },
+                );
+              },
+            ),
             Padding(
-              padding: const EdgeInsets.only(top: 15.0),
-              // Adjust the top padding value as needed
+              padding: EdgeInsets.only(top: 5.0),
               child: Image.asset(
-                'assets/ramalogoapp.png', // Update the path to your logo asset
-                height: 60,
-                width: 120,
+                'assets/logo/mainlogo.png',
+                height: screenHeight * 0.4, // Dynamic height based on screen height
+                width: screenWidth * 0.4, // Dynamic width based on screen width
               ),
             ),
             Row(
               children: [
                 IconButton(
                   icon: SizedBox(
-                    width: 34,
-                    height: 34,
+                    width: screenWidth * 0.1, // Dynamic width based on screen width
+                    height: screenHeight * 0.1, // Dynamic height based on screen height
                     child: Image.asset('assets/ambulance.png'),
                   ),
                   onPressed: () {
@@ -421,14 +189,7 @@ class _HomePageState extends State<HomePage> {
                       isScrollControlled: true,
                       builder: (BuildContext context) {
                         return Container(
-                          height: MediaQuery
-                              .of(context)
-                              .size
-                              .height * 0.15,
-                          width: MediaQuery
-                              .of(context)
-                              .size
-                              .height * 0.5,
+                          height: screenHeight * 0.18, // Dynamic height for modal
                           padding: const EdgeInsets.all(16.0),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -440,7 +201,7 @@ class _HomePageState extends State<HomePage> {
                                       text: 'Emergency ',
                                       style: TextStyle(
                                         color: Colors.black,
-                                        fontSize: 18.0,
+                                        fontSize: screenWidth * 0.045, // Responsive font size
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -448,7 +209,7 @@ class _HomePageState extends State<HomePage> {
                                       text: 'Call,',
                                       style: TextStyle(
                                         color: Colors.black,
-                                        fontSize: 18.0,
+                                        fontSize: screenWidth * 0.045,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -456,7 +217,7 @@ class _HomePageState extends State<HomePage> {
                                       text: ' Ambulance',
                                       style: TextStyle(
                                         color: Colors.red,
-                                        fontSize: 18.0,
+                                        fontSize: screenWidth * 0.045,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -473,12 +234,12 @@ class _HomePageState extends State<HomePage> {
                                 child: Text(
                                   '7877775530',
                                   style: TextStyle(
-                                    fontSize: 20,
+                                    fontSize: screenWidth * 0.05, // Responsive font size
                                     fontFamily: 'Poppins',
                                   ),
                                 ),
                                 onPressed: () {
-                                  _launchDialer('tel:7877775530');
+                                  _launchDialer(context, '7877775530'); // Pass the context here
                                 },
                               ),
                             ],
@@ -490,8 +251,8 @@ class _HomePageState extends State<HomePage> {
                 ),
                 IconButton(
                   icon: SizedBox(
-                    width: 34,
-                    height: 34,
+                    width: screenWidth * 0.1,
+                    height: screenHeight * 0.1,
                     child: Image.asset('assets/offer.png'),
                   ),
                   onPressed: () {},
@@ -500,104 +261,602 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
+      )
+          : null,// Hide the AppBar when the appointment tab is selected
+      drawer:Drawer(
+        width: 270,
+        child: Container(
+          color: Colors.white,
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: <Widget>[
+              DrawerHeader(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      radius: 40,
+                      backgroundImage: patientImage != null
+                          ? MemoryImage(base64Decode(patientImage!))
+                          : AssetImage('assets/logo/person.jpeg') as ImageProvider,
+                    ),
+                    SizedBox(height: 15),
+                    Text(
+                      patientName ?? 'Hello, User',
+                      style: TextStyle(
+                        color: AppColors.primaryColor,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // My Account section
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 6.0),
+                child: Text(
+                  'My Account',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Divider(),
+              ListTile(
+                leading: Icon(Icons.person),
+                title: Text('Profile'),
+                onTap: () {
+                  Navigator.pop(context); // Close the drawer
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => PatientLogin()),
+                  );
+                },
+              ),
+              Divider(),
+              // Second Section Header
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    vertical: 1.0, horizontal: 3.0),
+                child: Text(
+                  'My Services',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Divider(),
+              ListTile(
+                leading: Icon(Icons.calendar_today),
+                title: Text('My Appointments'),
+                onTap: () async {
+                  SharedPreferences prefs = await SharedPreferences.getInstance();
+                  final patientId = prefs.getString('patientId');
+
+                  if (patientId != null) {
+                    Navigator.pop(context); // Close the drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => BookingAppointmentPage(patientId: patientId)),
+                    );
+                  } else {
+                    _showLoginDialog(context); // Show login dialog if not logged in
+                  }
+                },
+              ),
+
+              ListTile(
+                leading: Icon(Icons.health_and_safety),
+                title: Text('My Health Records'),
+                onTap: () async {
+                  SharedPreferences prefs = await SharedPreferences
+                      .getInstance();
+                  final patientId = prefs.getString('patientId');
+                  final token = prefs.getString('jwtToken');
+
+                  if (patientId != null && token != null ) {
+                    Navigator.pop(context); // Close the drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) =>
+                          HealthRecordsScreen(patientId: patientId)),
+                    );
+                  } else {
+                    _showLoginDialog(context); // Show login dialog
+                  }
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.add_circle_outline),
+                title: Text('Book an Appointment'),
+                onTap: () {
+                  Navigator.pop(context); // Close the drawer
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => SpecializationsScreen()),
+                  );
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.medical_information),
+                title: Text('Pharmacy Order'),
+                onTap: () async {
+                  SharedPreferences prefs = await SharedPreferences.getInstance();
+                  final patientId = prefs.getString('patientId');
+
+                  if (patientId != null) {
+                    Navigator.pop(context); // Close the drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => PharmacyOrderList(patientId: patientId)),
+                    );
+                  } else {
+                    _showLoginDialog(context); // Show login dialog if not logged in
+                  }
+                },
+              ),
+
+              ListTile(
+                leading: Icon(Icons.medical_information),
+                title: Text('Lab Order'),
+                onTap: () async {
+                  SharedPreferences prefs = await SharedPreferences.getInstance();
+                  final patientId = prefs.getString('patientId');
+
+                  if (patientId != null) {
+                    Navigator.pop(context); // Close the drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Laborderlist(patientId: patientId)),
+                    );
+                  } else {
+                    _showLoginDialog(context); // Show login dialog if not logged in
+                  }
+                },
+              ),
+
+              Divider(),
+              // Other Information section
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 6.0),
+                child: Text(
+                  'Other Information',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Divider(),
+              ListTile(
+                leading: Icon(Icons.privacy_tip),
+                title: Text('Privacy Policy'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => PrivacyPolicyScreen()),
+                  );
+                },
+              ),
+
+              ListTile(
+                leading: Icon(Icons.info_outline),
+                title: Text('About Us'),
+                onTap: () {},
+              ),
+              ListTile(
+                leading: Icon(Icons.rule),
+                title: Text('Terms and Conditions'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => TermsAndConditionsScreen()),
+                  );
+                },
+              ),
+
+              Divider(),
+              ListTile(
+                leading: Icon(Icons.feedback_outlined),
+                title: Text('Feedback'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => FeedbackScreen()),
+                  );
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.question_answer),
+                title: Text('FAQs'),
+                onTap: () {},
+              ),
+              Divider(),
+              ListTile(
+                leading: Icon(Icons.logout),
+                title: Text('Logout'),
+                onTap: () async {
+                  // Clear shared preferences to log out the user
+                  SharedPreferences prefs = await SharedPreferences.getInstance();
+                  await prefs.clear();
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => PatientLogin()),
+                        (route) => false,
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
       ),
+      body: _currentPage, // Display the selected page
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        items: <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.schedule),
+            label: 'Appointments',
+          ),
+        ],
+        selectedItemColor: AppColors.primaryColor,
+        unselectedItemColor: Colors.grey,
+        selectedFontSize: 14,
+        unselectedFontSize: 14,
+        selectedLabelStyle: TextStyle(fontWeight: FontWeight.bold),
+        unselectedLabelStyle: TextStyle(fontWeight: FontWeight.normal),
+        backgroundColor: Colors.white,
+      ),
+    );
+  }
+}
+
+
+  void _showLoginDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Not Logged In'),
+        content: Text('Please log in to view your health records.'),
+        actions: <Widget>[
+          TextButton(
+            child: Text('Log In'),
+            onPressed: () {
+              Navigator.of(context).pop(); // Close the dialog
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => PatientLogin()),
+              );
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
+void _launchDialer(BuildContext context, String phoneNumber) async {
+  final Uri launchUri = Uri(
+    scheme: 'tel',
+    path: phoneNumber,
+  );
+
+  if (await canLaunch(launchUri.toString())) {
+    await launch(launchUri.toString());
+  } else {
+    // Show an error message if unable to launch the dialer
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // Get screen dimensions for responsiveness
+        final screenWidth = MediaQuery.of(context).size.width;
+        final screenHeight = MediaQuery.of(context).size.height;
+
+        return AlertDialog(
+          title: Text('Error'),
+          content: Container(
+            width: screenWidth * 0.8, // 80% of screen width
+            height: screenHeight * 0.05, // 10% of screen height
+            child: Center(
+              child: Text('Could not launch the dialer.'),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class HomePage extends StatefulWidget {
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  TextEditingController _searchController = TextEditingController();
+  List<String> _videoIds = [
+    'OCmc7Nmm2wM',
+    'c27fqdA4n18',
+    'WQ2ByqswdLk',
+    'JoTOsWBqalk',
+  ];
+  late YoutubePlayerController _youtubeController;
+  bool _isVideoPlayerVisible = false; // New flag to track visibility
+
+
+  @override
+  void initState() {
+    super.initState();
+
+    _youtubeController = YoutubePlayerController(
+      initialVideoId: _videoIds[0],
+      flags: YoutubePlayerFlags(
+        autoPlay: false,
+        mute: false,
+      ),
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _youtubeController.unMute();
+      _youtubeController.setVolume(100);
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _youtubeController.dispose();
+    super.dispose();
+  }
+
+  Future<bool> _isLoggedIn() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final patientId = prefs.getString('patientId');
+    return patientId != null; // true if logged in, false otherwise
+  }
+
+  void _showLoginRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
+          ),
+          child: AnimatedOpacity(
+            opacity: 1.0,
+            duration: Duration(milliseconds: 300),
+            child: Container(
+                padding: EdgeInsets.all(20.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16.0),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 10.0,
+                      offset: Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "Login Required",
+                        style: TextStyle(
+                          fontSize: 24.0,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal,
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      Text(
+                        "Sorry, you are not logged in. Please log in to continue.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16.0,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        "😔", // Emoji
+                        style: TextStyle(fontSize: 40),
+                      ),
+                      SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: <Widget>[
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(5.0),
+                              ),
+                              padding: EdgeInsets.symmetric(horizontal: 10,
+                                  vertical: 5),
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => PatientLogin()),
+                              );
+                            },
+                            child: Text("Login",
+                              style: TextStyle(fontSize: 18,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: <Widget>[
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.teal,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(5.0),
+                                  ),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 5),
+                                ),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) =>
+                                        PatientRegistrationForm()),
+                                  );
+                                },
+                                child: Text("Register",
+                                  style: TextStyle(fontSize: 18,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ]
+                )),
+          ),
+        );
+      },
+    );
+  }
+
+
+  void _navigateToScreen(Widget screen, {bool requiresLogin = true}) async {
+    if (requiresLogin) {
+      bool loggedIn = await _isLoggedIn();
+      if (loggedIn) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => screen),
+        );
+      } else {
+        _showLoginRequiredDialog();
+      }
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => screen),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
       body: ListView(
         padding: EdgeInsets.all(16.0),
         children: <Widget>[
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30.0),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.5),
-                    spreadRadius: 1,
-                    blurRadius: 10,
-                    offset: Offset(0, 3),
-                  ),
-                ],
-              ),
-
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search by Doctor, Speciality, Symptoms',
-                  prefixIcon: Icon(Icons.search, color: Colors.grey),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30.0),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding:
-                  EdgeInsets.symmetric(vertical: 0.0, horizontal: 20.0),
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value;
-                  });
-                },
+            child: Text(
+              'Our Services',
+              style: TextStyle(
+                fontSize: 20.0,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[700],
+                fontFamily: 'Poppins',
               ),
             ),
           ),
           Container(
-            padding: EdgeInsets.all(16.0),
+            padding: EdgeInsets.symmetric(horizontal: 7.0, vertical: 0.0),
             child: Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildMenuButton(
-                      'Book Appointment',
-                      'assets/icon/calendar.png',
-                          () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ViewAllDoctors(),
-                              ),
-                            );// Add your navigation or action code here
+                    _buildServiceCard(
+                      titleLine1: 'Doctor',
+                      titleLine2: 'Appointment',
+                      subtitle: 'Book Now',
+                      imageAsset: 'assets/homeCon/Stethoscope.png',
+                      backgroundColor: Color(0xFFE0F7FA),
+                      onPressedSubtitle: () {
+                        // No login required
+                        _navigateToScreen(
+                            SpecializationsScreen(), requiresLogin: false);
                       },
-
                     ),
-                    // SizedBox(width: 10.0),
-                    _buildMenuButton(
-                      'Book Video Consult',
-                      'assets/icon/video.png',
-                          () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => doctoronline(),
-                              ),
-                            );// // Add your navigation or action code here
+                    SizedBox(width: 16.0),
+                    _buildServiceCard(
+                      titleLine1: 'Lab ',
+                      titleLine2: 'Test',
+                      subtitle: 'Book Test',
+                      imageAsset: 'assets/homeCon/img_1.png',
+                      backgroundColor: Color(0xFFE0F7FA),
+                      onPressedSubtitle: () {
+                        // Login required for Lab Test
+                        _navigateToScreen(LabTestBooking());
                       },
-                      //
                     ),
                   ],
                 ),
-                SizedBox(height: 16.0),
+                SizedBox(height: 10.0),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildMenuButton(
-                      '   Test  &  Services   ',
-                      'assets/icon/test.png',
-                          () {
-                        // Add your navigation or action code here
+                    _buildServiceCard(
+                      titleLine1: 'Buy',
+                      titleLine2: 'Medicines',
+                      subtitle: 'Buy',
+                      imageAsset: 'assets/homeCon/Capsule & Pill.png',
+                      backgroundColor: Color(0xFFFFF3E0),
+                      onPressedSubtitle: () {
+                        // Login required for Buy Medicines
+                        _navigateToScreen(MedicinePage());
                       },
-
                     ),
-                    // SizedBox(width: 10.0),
-                    _buildMenuButton(
-                      '  Health  CheckUps ',
-                      'assets/icon/heart.png',
-                          () {
-                        // Add your navigation or action code here
+                    SizedBox(width: 16.0),
+                    _buildServiceCard(
+                      titleLine1: 'Health',
+                      titleLine2: 'Package',
+                      subtitle: 'Explore',
+                      imageAsset: 'assets/homeCon/img.png',
+                      backgroundColor: Color(0xFFFFF3E0),
+                      onPressedSubtitle: () {
+                        // No login required
+                        _navigateToScreen(
+                            HealthPackages(), requiresLogin: false);
                       },
-
                     ),
                   ],
                 ),
@@ -605,465 +864,282 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
+
           SizedBox(height: 16.0),
-          // Rest of your code remains unchanged
-          // Section 1
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Our Medical Experts',
-                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+          // Horizontal Scroll Section
+          Text(
+            'Popular Services',
+            style: TextStyle(
+              fontSize: 20.0,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[700],
+              fontFamily: 'Poppins',
+            ),
+          ),
+          SizedBox(height: 8.0),
+          Container(
+            height: 150, // Set the height for the horizontal scroll view
+            // Set the height for the horizontal scroll view
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildImageCard(
+                      'assets/specialities/Diabetes.png'),
+                  _buildImageCard(
+                      'assets/specialities/Silver.png'),
+                  _buildImageCard(
+                      'assets/specialities/Womens.png'),
+                  _buildImageCard(
+                      'assets/specialities/speacialoffer.jpeg'),
+                ],
               ),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => ViewAllDoctors()),
-                  );
-                },
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'View All',
-                      style: TextStyle(
-                        fontSize: 16.0,
-                        color: Colors.teal,
-                        fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 16.0),
+          Text(
+            'Health Tips',
+            style: TextStyle(
+              fontSize: 20.0,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[700],
+              fontFamily: 'Poppins',
+            ),
+          ),
+         // Add a line divider under the title
+          SizedBox(height: 8.0),
+
+// Horizontal scroll for video thumbnails
+          Container(
+            height: 120.0, // Slightly increase height
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _videoIds.length,
+              itemBuilder: (context, index) {
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _youtubeController.load(_videoIds[index]);
+                      _isVideoPlayerVisible = true;
+                    });
+                  },
+                  child: Container(
+                    margin: EdgeInsets.symmetric(horizontal: 5.0),
+                    width: 140.0,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.teal, width: 2.0),  // Change border color and width
+                      borderRadius: BorderRadius.circular(12.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.5),
+                          spreadRadius: 2,
+                          blurRadius: 5,
+                          offset: Offset(0, 3),  // Adds depth to thumbnails
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10.0),
+                      child: Image.network(
+                        'https://img.youtube.com/vi/${_videoIds[index]}/0.jpg',
+                        height: 120.0,
+                        width: 150.0,
+                        fit: BoxFit.cover,  // Ensures the thumbnail fills the container
                       ),
                     ),
-                    //   SizedBox(width: 4.0), // Adjust the width as needed
-                    //   Icon(
-                    //     Icons.arrow_forward_sharp,
-                    //     color: Colors.teal,
-                    //   ),
-                  ],
+                  ),
+                );
+              },
+            ),
+          ),
+          SizedBox(height: 10.0),
+
+// Video Player, only visible when a video is selected
+          _isVideoPlayerVisible
+              ? Container(
+            margin: EdgeInsets.symmetric(horizontal: 10.0),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: AppColors.primaryColor, // Match with the overall color theme
+                width: 2.5,  // Thicker border for focus
+              ),
+              borderRadius: BorderRadius.circular(8.0),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.teal.withOpacity(0.3),
+                  spreadRadius: 2,
+                  blurRadius: 6,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: AspectRatio(
+              aspectRatio: 13 / 7,
+              child: YoutubePlayer(
+                controller: _youtubeController,
+                showVideoProgressIndicator: true,
+                onReady: () {
+                  _youtubeController.unMute();
+                  _youtubeController.setVolume(100);
+                },
+                onEnded: (metaData) {
+                  print('Video has ended');
+                },
+              ),
+            ),
+          )
+              : Container(),
+          SizedBox(height: 16.0),
+
+
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImageCard(String imagePath) {
+    return Container(
+      width: 360,
+      // Set the desired width
+      height: 350,
+      // Adjust the height as necessary to match the aspect ratio
+      margin: EdgeInsets.only(right: 16.0),
+      // Adds space between cards
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16.0), // Rounded corners
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.5),
+            spreadRadius: 2,
+            blurRadius: 5,
+            offset: Offset(0, 3), // Shadow position
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16.0),
+        // Rounded corners for the image
+        child: Column(
+          children: [
+            Container(
+              height: 150,
+              // Adjust the height to ensure the image is fully displayed
+              width: 360,
+              // Set the desired width
+              child: Image.asset(
+                imagePath,
+                fit: BoxFit.cover, // Ensure the image fills the container
+              ),
+            ),
+            // SizedBox(height: 8.0),
+            // Text(
+            //   title,
+            //   style: TextStyle(fontSize: 14.0),
+            //   textAlign: TextAlign.center, // Align text to center if desired
+            // ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildServiceCard({
+    required String titleLine1,
+    required String titleLine2,
+    required String subtitle,
+    required String imageAsset,
+    required Color backgroundColor,
+    required VoidCallback onPressedSubtitle,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onPressedSubtitle, // Trigger navigation on card tap
+        child: Container(
+          padding: EdgeInsets.all(5.0),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(8.0),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.3),
+                spreadRadius: 2,
+                blurRadius: 5,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Title and image row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        titleLine1,
+                        style: TextStyle(
+                          fontSize: 12.0,
+                          color: AppColors.primaryColor,
+                        ),
+                      ),
+                      Text(
+                        titleLine2,
+                        style: TextStyle(
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Image.asset(
+                    imageAsset,
+                    width: 50.0,
+                    height: 50.0,
+                    fit: BoxFit.cover,
+                  ),
+                ],
+              ),
+              SizedBox(height: 4.0),
+              // Subtitle button row
+              SizedBox(
+                width: 100.0,
+                height: 25.0,
+                child: ElevatedButton(
+                  onPressed: onPressedSubtitle,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                  ),
+                  child: Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 10.0,
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryColor,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 10.0),
-          Container(
-            height: 220,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: _filteredSections
-                  .where((section) => section['type'] == 'Top Doctor')
-                  .map<Widget>((section) =>
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: section['widget'],
-                  ))
-                  .toList(),
-            ),
-          ),
-          SizedBox(height: 16.0),
-          Text(
-            'Special Offers',
-            style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 8.0),
-          Container(
-            height: 100,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: _filteredSections
-                  .where((section) => section['type'] == 'Special Offer')
-                  .map<Widget>((section) =>
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: section['widget'],
-                  ))
-                  .toList(),
-            ),
-          ),
-          SizedBox(height: 16.0),
-          Text(
-            'Super Specialties',
-            style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 8.0),
-          Container(
-            height: 100,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: _superSpecialties.map<Widget>((specialty) {
-                return GestureDetector(
-                  onTap: () {
-                    print('Tapped Specialty with ID: ${specialty.specializationId}');  // Debug the ID being tapped
-                    _onSpecialtyTap(specialty.specializationId);
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      children: [
-                        if (specialty.iconBase64.isNotEmpty)
-                          Image.memory(
-                            _convertBase64ToImage(specialty.iconBase64),
-                            height: 60,
-                            width: 60,
-                            errorBuilder: (context, error, stackTrace) {
-                              print('Error building image: $error');
-                              return Icon(Icons.broken_image, size: 60);
-                            },
-                          )
-                        else
-                          Icon(Icons.image_not_supported, size: 60),
-                        Text(specialty.specialization),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          SizedBox(height: 16.0),
-          Text(
-            'Specialties',
-            style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 8.0),
-          Container(
-            height: 100,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: _specialties.map<Widget>((specialty) {
-                return GestureDetector(
-                  onTap: () => _onSpecialtyTap(specialty.specializationId),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      children: [
-                        if (specialty.iconBase64.isNotEmpty)
-                          Image.memory(
-                            _convertBase64ToImage(specialty.iconBase64),
-                            height: 60,
-                            width: 60,
-                            errorBuilder: (context, error, stackTrace) {
-                              print('Error building image: $error');
-                              return Icon(Icons.broken_image, size: 60);
-                            },
-                          )
-                        else
-                          Icon(Icons.image_not_supported, size: 60),
-                        Text(specialty.specialization),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          SizedBox(height: 16.0),
-          // Section 5
-          Text(
-            'Services',
-            style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 8.0),
-          Container(
-            height: 100,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: _filteredSections
-                  .where((section) => section['type'] == 'Services')
-                  .map<Widget>((section) =>
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: section['widget'],
-                  ))
-                  .toList(),
-            ),
-          ),
-          SizedBox(height: 16.0),
-          // Section 6
-          Text(
-            'Health Checkup',
-            style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 8.0),
-          Container(
-            height: 100,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: _filteredSections
-                  .where((section) => section['type'] == 'healthcheckup')
-                  .map<Widget>((section) =>
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: HealthCheckup(
-                      description: section['widget'].description,
-                    ),
-                  ))
-                  .toList(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMenuButton(String title, String iconPath,
-      VoidCallback onPressed) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        padding: EdgeInsets.all(16.0),
-        backgroundColor: AppColors.primaryColor,
-        shadowColor: Colors.grey.withOpacity(0.5),
-        elevation: 5,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10.0),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Image.asset(iconPath, height: 20, width: 20),
-          SizedBox(width: 4.0),
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 10.0,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Poppins',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-
-// Doctor Card Widget
-class DoctorCard extends StatelessWidget {
-  final String name;
-  final String specialty;
-  final double rating;
-  final String imagePath;
-  final String operations;
-  final String degrees;
-  final double patientStories;
-
-  const DoctorCard({
-    required this.name,
-    required this.specialty,
-    required this.rating,
-    required this.imagePath,
-    required this.operations,
-    required this.degrees,
-    required this.patientStories,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(20.0)),
-              ),
-              title: Center(child: Text(name)),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.asset(imagePath),
-                    ),
-                    SizedBox(height: 15),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Specialty:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text(specialty),
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Rating:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text(rating.toString()),
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Operations:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text(operations),
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Degrees:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text(degrees),
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Patient Stories:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text(patientStories.toString()),
-                      ],
-                    ),
-                    SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => PatientRegistrationForm(),
-                          ),
-                        );
-                      },
-                      child: Text('Book Appointment'),
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.white, // Foreground color
-                        backgroundColor: Colors.teal, // Background color
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-      child: Container(
-        width: 150,
-        height: 200,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20), // Curved sides
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.5),
-              spreadRadius: 2,
-              blurRadius: 5,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: Colors.grey, // Border color
-                  width: 2.0, // Border width
-                ),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)), // Curved top
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)), // Curved top
-                child: Image.asset(
-                  imagePath,
-                  width: 100,
-                  height: 140,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center, // Center the text
-                children: [
-                  Text(
-                    name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 2.0),
-                  Text(specialty),
-                ],
-              ),
-            ),
-          ],
         ),
       ),
     );
   }
 }
 
-// Offer Card Widget
-class OfferCard extends StatelessWidget {
-  final String title;
-  final String description;
 
-  OfferCard({
-    required this.title,
-    required this.description,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              title,
-              style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 4.0),
-            Text(description),
-          ],
-        ),
-      ),
-    );
-  }
-}
-Widget _buildDepartmentItem(String assetPath, String departmentName) {
-  return Column(
-    children: [
-      Image.asset(
-        assetPath,
-        height: 60,
-        width: 60,
-      ),
-      Text(departmentName),
-    ],
-  );
-}
-class SuperSpecialty {
-  final int specializationId;
-  final String specialization;
-  final String iconBase64;
-
-  SuperSpecialty({
-    required this.specializationId,
-    required this.specialization,
-    required this.iconBase64,
-  });
-
-  factory SuperSpecialty.fromJson(Map<String, dynamic> json) {
-    return SuperSpecialty(
-      specializationId: json['specializationId'] ?? 0,  // Ensure this maps to the correct field
-      specialization: json['specialization'] ?? '',
-      iconBase64: json['iconBase64'] ?? '',
-    );
-  }
-}
-
-class Specialty {
+  class Specialty {
   final int specializationId;
   final String specialization;
   final String iconBase64;
@@ -1083,124 +1159,3 @@ class Specialty {
   }
 }
 
-class DoctorScreen extends StatelessWidget {
-  final String specializationId;
-  final String specializationName;
-
-  DoctorScreen({
-    required this.specializationId,
-    required this.specializationName,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(specializationName),
-      ),
-      body: Center(
-        child: Text('Doctors for $specializationName'),
-      ),
-    );
-  }
-}
-// Services Widget
-class Services extends StatelessWidget {
-  final String description;
-
-  Services({
-    required this.description,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              description,
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Health Checkup Widget
-class HealthCheckup extends StatelessWidget {
-  final String description;
-
-  // final String tests;
-  // final String preparation;
-
-  HealthCheckup({
-    required this.description,
-    // required this.tests,
-    // required this.preparation,
-  });
-
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              description,
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 4.0),
-            // Text('Tests: $tests'),
-            // Text('Preparation: $preparation'),
-          ],
-        ),
-      ),
-    );
-  }
-}
-Future<void> _launchDialer(String number) async {
-  final Uri url = Uri(scheme: 'tel', path: number);
-  if (await canLaunchUrl(url)) {
-    await launchUrl(url);
-  } else {
-    throw 'Could not launch $url';
-  }
-}
-
-Widget _buildMenuButton(String title, String iconPath, VoidCallback onPressed, {Color color = Colors.red}) {
-  return Expanded(
-    child: ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color, // Set the background color
-        padding: EdgeInsets.symmetric(vertical: 16.0),
-      ),
-      onPressed: onPressed,
-      child: Column(
-        children: [
-          Image.asset(
-            iconPath,
-            height: 40.0,
-            width: 40.0,
-          ),
-          SizedBox(height: 8.0),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white, // Set the text color
-              fontSize: 16.0,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}

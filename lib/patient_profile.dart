@@ -1,67 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:global/colors.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'PatientLogin.dart';
+import 'app_config.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'feedback.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'homepage.dart';
-import 'PatientLogin.dart';
-import 'bookappointment.dart';
-import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import'app_config.dart';
-import 'patient_report.dart';
-class MainScreen extends StatefulWidget {
-  final String patientId;
-  final Function(String) onLogin;
-
-  MainScreen({required this.patientId, required this.onLogin});
-
-  @override
-  _MainScreenState createState() => _MainScreenState();
-}
-
-class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    List<Widget> _widgetOptions = <Widget>[
-      HomePage(),
-      BookingAppointmentPage(),
-      PatientProfileScreen(patientId: widget.patientId), // Pass patientId here
-    ];
-
-    void _onItemTapped(int index) {
-      setState(() {
-        _selectedIndex = index;
-      });
-    }
-
-    return Scaffold(
-      body: _widgetOptions.elementAt(_selectedIndex),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: ImageIcon(AssetImage('assets/home.png')),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: ImageIcon(AssetImage('assets/appointment.png')),
-            label: 'Appointments',
-          ),
-          BottomNavigationBarItem(
-            icon: ImageIcon(AssetImage('assets/patient.png')),
-            label: 'Profile',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
-        onTap: _onItemTapped,
-      ),
-    );
-  }
-}
+import 'package:http_parser/http_parser.dart'; // For handling file type
 
 class PatientProfileScreen extends StatefulWidget {
   final String patientId;
@@ -71,85 +17,181 @@ class PatientProfileScreen extends StatefulWidget {
   @override
   _PatientProfileScreenState createState() => _PatientProfileScreenState();
 }
-class _PatientProfileScreenState extends State<PatientProfileScreen> {
-  String name = 'Loading...';
-  String fatherName = 'Loading...';
-  String dob = 'Loading...';
-  String sex = 'Loading...';
-  String patientId = 'Loading...';
-  File? _profileImage; // Store the profile image
 
-  final ImagePicker _picker = ImagePicker();
+class _PatientProfileScreenState extends State<PatientProfileScreen> {
+  late Future<Patient> futurePatient;
+  File? _image;
 
   @override
   void initState() {
     super.initState();
-    fetchPatientDetails();
+    futurePatient = fetchPatientDetails();
+    _loadProfilePicture();
   }
 
-  Future<void> fetchPatientDetails() async {
+  Future<Patient> fetchPatientDetails() async {
     final response = await http.get(
       Uri.parse('${AppConfig.apiUrl1}${AppConfig.getPatientByIdEndpoint}?PatientId=${widget.patientId}'),
     );
 
-    print('Response status: ${response.statusCode}');
-    print('Response body: ${response.body}');
-
     if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      setState(() {
-        String firstName = data['first_name'] ?? 'Unknown';
-        name = '$firstName ';
-        fatherName = data['father_spouse_name'] ?? 'Unknown';
-        dob = data['dob'] ?? 'Unknown';
-        sex = data['gender'] ?? 'Unknown';
-        patientId = data['patient_id'] ?? 'Unknown';
-      });
+      final responseData = jsonDecode(response.body);
+      return Patient.fromJson(responseData);
     } else {
-      setErrorState();
+      throw Exception('Failed to load patient details');
     }
   }
 
-  void setErrorState() {
-    setState(() {
-      name = 'Failed to load';
-      dob = 'Failed to load';
-      fatherName = 'Failed to load';
-      sex = 'Failed to load';
-      patientId = 'Failed to load';
-    });
+  Future<void> _logout() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => PatientLogin()),
+          (route) => false,
+    );
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    final pickedFile = await _picker.pickImage(source: source);
-    if (pickedFile != null) {
+    final picker = ImagePicker();
+
+    try {
+      final pickedFile = await picker.pickImage(source: source);
+
+      if (pickedFile != null) {
+        setState(() {
+          _image = File(pickedFile.path);
+        });
+
+        // Save the picture locally
+        _saveProfilePicture(pickedFile.path);
+
+        // Automatically upload the picture after selecting
+        await _uploadProfilePicture();
+      }
+    } catch (e) {
+      if (Platform.isIOS) {
+        _showFailureDialog("Failed to pick image on iOS: $e");
+      } else {
+        _showFailureDialog("Failed to pick image: $e");
+      }
+    }
+  }
+
+  Future<void> _uploadProfilePicture() async {
+    if (_image == null) {
+      _showFailureDialog('No image selected.');
+      return;
+    }
+
+    var request = http.MultipartRequest(
+      'POST',
+      Uri.parse('http://192.168.1.106:8081/api/HospitalApp/SaveOrUpdatePatientImage?uhid=${widget.patientId}'),
+    );
+
+    try {
+      // Attach the image file
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'imageFile', // key expected by the API for the image file
+          _image!.path,
+          contentType: MediaType('imageFile', 'jpg'), // Adjust based on your file type
+        ),
+      );
+
+      // Send the request
+      var response = await request.send();
+
+      if (response.statusCode == 200) {
+        _showSuccessDialog('Profile updated successfully.');
+      } else {
+        // Displaying server's error message for better diagnosis
+        String errorResponse = await response.stream.bytesToString();
+        _showFailureDialog('Failed to update profile. Status code: ${response.statusCode}. Response: $errorResponse');
+      }
+    } catch (e) {
+      _showFailureDialog('An error occurred: $e');
+    }
+  }
+
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Success'),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showFailureDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Failed'),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _saveProfilePicture(String path) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('profilePicture', path);
+  }
+
+  Future<void> _loadProfilePicture() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? picturePath = prefs.getString('profilePicture');
+    if (picturePath != null) {
       setState(() {
-        _profileImage = File(pickedFile.path);
+        _image = File(picturePath);
       });
     }
   }
 
-  void _showImageSourceActionSheet(BuildContext context) {
-    showModalBottomSheet(
+  void _showImageSourceDialog() {
+    showDialog(
       context: context,
       builder: (BuildContext context) {
-        return SafeArea(
-          child: Column(
+        return AlertDialog(
+          title: Text('Choose profile picture'),
+          content: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               ListTile(
                 leading: Icon(Icons.camera_alt),
-                title: Text('Camera'),
+                title: Text('Take a photo'),
                 onTap: () {
-                  Navigator.of(context).pop();
+                  Navigator.pop(context);
                   _pickImage(ImageSource.camera);
                 },
               ),
               ListTile(
-                leading: Icon(Icons.photo),
-                title: Text('Gallery'),
+                leading: Icon(Icons.photo_library),
+                title: Text('Choose from gallery'),
                 onTap: () {
-                  Navigator.of(context).pop();
+                  Navigator.pop(context);
                   _pickImage(ImageSource.gallery);
                 },
               ),
@@ -160,448 +202,186 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
     );
   }
 
-  void _showHealthRecords() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => HealthRecordsScreen(patientId: patientId),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(30.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 16.0),
-              Center(
-                child: CircleAvatar(
-                  radius: 40,
-                  backgroundColor: Colors.teal,
-                  backgroundImage: _profileImage != null
-                      ? FileImage(_profileImage!)
-                      : null,
-                  child: _profileImage == null
-                      ? Text(
-                    name.isNotEmpty ? name[0] : 'R',
-                    style: TextStyle(fontSize: 40, color: Colors.white),
-                  )
-                      : null,
-                ),
-              ),
-              SizedBox(height: 10),
-              Center(
-                child: Text(
-                  'Hello, $name',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ),
-              SizedBox(height: 10),
-              Center(
-                child: TextButton(
-                  onPressed: () {
-                    _showImageSourceActionSheet(context);
-                  },
-                  child: Text(
-                    'Change Profile Picture',
-                    style: TextStyle(color: Colors.teal),
-                  ),
-                ),
-              ),
-              SizedBox(height: 20),
-              Container(
-                padding: EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  color: Colors.teal[100],
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.5),
-                      spreadRadius: 2,
-                      blurRadius: 5,
-                      offset: Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'My Profile',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    Divider(thickness: 1, color: Colors.grey),
-                    ProfileInfoRow(label: 'Name', value: name),
-                    ProfileInfoRow(label: 'Guardian Name', value: fatherName),
-                    ProfileInfoRow(label: 'D.O.B', value: dob),
-                    ProfileInfoRow(label: 'Gender', value: sex),
-                    ProfileInfoRow(label: 'Patient ID', value: patientId),
-                  ],
-                ),
-              ),
-              SizedBox(height: 20),
-              SectionHeader(title: 'Health Details'),
-              ListTile(
-                leading: Icon(Icons.calendar_today),
-                title: Text('My Appointments'),
-                onTap: () {},
-              ),
-              ListTile(
-                leading: Icon(Icons.health_and_safety),
-                title: Text('My Health Records'),
-                onTap: _showHealthRecords,
-              ),
-              ListTile(
-                leading: Icon(Icons.add_circle_outline),
-                title: Text('Book an Appointment'),
-                onTap: () {},
-              ),
-              SizedBox(height: 20),
-              SectionHeader(title: 'More Details'),
-              ListTile(
-                leading: Icon(Icons.privacy_tip),
-                title: Text('Privacy Policy'),
-                onTap: () {},
-              ),
-              ListTile(
-                leading: Icon(Icons.info_outline),
-                title: Text('About Us'),
-                onTap: () {},
-              ),
-              ListTile(
-                leading: Icon(Icons.rule),
-                title: Text('Terms of Use'),
-                onTap: () {},
-              ),
-              ListTile(
-                leading: Icon(Icons.feedback_outlined),
-                title: Text('Feedback'),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => FeedbackScreen(
-                        patientId: widget.patientId, // Pass the patient ID
-                        category: 'Doctors', // Set the default category to "Doctors"
-                      ),
-                    ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.question_answer),
-                title: Text('FAQs'),
-                onTap: () {},
-              ),
-              ListTile(
-                leading: Icon(Icons.logout),
-                title: Text('Logout'),
-                // onTap: () async {
-                //   // SharedPreferences prefs = await SharedPreferences.getInstance();
-                //   // await prefs.setBool('isLoggedIn', false);
-                //   // Navigator.pushReplacement(
-                //   //   context,
-                //   // MaterialPageRoute(builder: (context) => PatientLogin()),
-                //   );
-                // },
-              ),
-            ],
+      appBar: AppBar(
+        title: Text(
+          'Patient Dashboard',
+          style: TextStyle(
+            color: AppColors.primaryColor,
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.bold,
           ),
         ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            color: Colors.black,
+            onPressed: _logout,
+          ),
+        ],
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
+      body: FutureBuilder<Patient>(
+        future: futurePatient,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (snapshot.hasData) {
+            final patient = snapshot.data!;
+            return Stack(
+              children: [
+                SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SizedBox(height: 20),
+
+                      // Profile Image with Change Picture Button and Edit Icon
+                      Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundColor: Colors.teal,
+                            backgroundImage: _image != null
+                                ? FileImage(_image!)
+                                : patient.imageUrl.isNotEmpty
+                                ? MemoryImage(base64Decode(patient.imageUrl)) // Decode base64 image
+                                : null,
+                            child: _image == null && patient.imageUrl.isEmpty
+                                ? Text(
+                              patient.firstName.isNotEmpty
+                                  ? patient.firstName[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(fontSize: 50, color: Colors.white),
+                            )
+                                : null,
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        "Hello, ${patient.firstName}",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      SizedBox(height: 10),
+
+                      ElevatedButton(
+                        onPressed: _showImageSourceDialog,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                        ),
+                        child: Text(
+                          'Change Profile Picture',
+                          style: TextStyle(color: AppColors.primaryColor),
+                        ),
+                      ),
+                      SizedBox(height: 20),
+
+                      // User Details
+                      Card(
+                        color: Colors.grey[100], // Light background for profile details
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 4,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildDetailRow("Name", patient.firstName),
+                              _buildDetailRow("Guardian Name", patient.fatherSpouseName),
+                              _buildDetailRow("Patient Id", patient.patientId),
+                              _buildDetailRow("Mobile No", patient.phoneNo),
+                              _buildDetailRow("Aadhar No", patient.adharNo),
+                              _buildDetailRow("DOB", patient.dob),
+                              _buildDetailRow("Gender", patient.gender),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 100), // Extra space to avoid content overlap
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }
+          return Center(child: Text('No patient data available.'));
+        },
       ),
     );
   }
-}
 
-class ProfileInfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  ProfileInfoRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildDetailRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start, // Aligns items to the start
         children: [
-          Text(
-            '$label: ',
-            style: TextStyle(fontWeight: FontWeight.bold),
+          Expanded( // Use Expanded to wrap the value text
+            child: Text(
+              '$label:',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            ),
           ),
-          Text(value),
+          SizedBox(width: 10),
+          Expanded( // Use Expanded to wrap the value text
+            child: Text(
+              value,
+              style: TextStyle(fontSize: 13),
+              softWrap: true, // Ensures text wraps
+            ),
+          ),
         ],
       ),
     );
   }
 }
-
-class SectionHeader extends StatelessWidget {
-  final String title;
-
-  SectionHeader({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Text(
-        title,
-        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-}
-
-class HomePage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text('Home Page'),
-    );
-  }
-}
-
-class BookingAppointmentPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text('Booking Appointment Page'),
-    );
-  }
-}
-
-class HealthRecordsScreen extends StatefulWidget {
+class Patient {
   final String patientId;
+  final String firstName;
+  final String gender;
+  final String dob;
+  final String phoneNo;
+  final String fatherSpouseName;
+  final String adharNo;
+  final String imageUrl; // This will store base64-encoded image data
 
-  HealthRecordsScreen({required this.patientId});
+  Patient({
+    required this.patientId,
+    required this.firstName,
+    required this.gender,
+    required this.dob,
+    required this.phoneNo,
+    required this.fatherSpouseName,
+    required this.adharNo,
+    required this.imageUrl,
+  });
 
-  @override
-  _HealthRecordsScreenState createState() => _HealthRecordsScreenState();
-}
-
-class _HealthRecordsScreenState extends State<HealthRecordsScreen> {
-  String patientName = 'Loading...';
-  List<Map<String, String>> healthRecords = []; // List to hold health records
-
-  @override
-  void initState() {
-    super.initState();
-    fetchPatientDetails();
-  }
-
-  Future<void> fetchPatientDetails() async {
-    // Fetch patient details
-    final response = await http.get(
-      Uri.parse('${AppConfig.apiUrl1}${AppConfig.getPatientByIdEndpoint}?PatientId=${widget.patientId}'),
-    );
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      setState(() {
-        patientName = data['first_name'] ?? 'Unknown';
-      });
-
-      // Fetch IPID and DOA information
-      final ipidResponse = await http.get(
-        Uri.parse('http://192.168.1.179:8081/api/HospitalApp/GetIpidWithImeage?patientId=${widget.patientId}'),
-      );
-
-      if (ipidResponse.statusCode == 200) {
-        final ipidData = json.decode(ipidResponse.body);
-        setState(() {
-          healthRecords = [
-            {
-              "admitted": ipidData['doa']?.split('T').first ?? 'Unknown',
-              "ipid": ipidData['ipid'].toString(),
-              "report": "View Report"
-            }
-          ];
-        });
-      } else {
-        setState(() {
-          healthRecords = [
-            {"admitted": "Failed to load", "ipid": "Unknown", "report": ""}
-          ];
-        });
-      }
-    } else {
-      setState(() {
-        patientName = 'Failed to load';
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    TextEditingController patientIdController = TextEditingController(text: widget.patientId);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Health Records'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Patient Name: $patientName', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            SizedBox(height: 16),
-            TextField(
-              controller: patientIdController,
-              readOnly: true,
-              decoration: InputDecoration(
-                labelText: 'Patient ID',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            SizedBox(height: 16),
-            Expanded(
-              child: DataTable(
-                columns: [
-                  DataColumn(label: Text('Admitted')),
-                  DataColumn(label: Text('IPID')),
-                  DataColumn(label: Text('Report')),
-                ],
-                rows: healthRecords.map((record) {
-                  return DataRow(cells: [
-                    DataCell(Text(record['admitted'] ?? 'Unknown')), // Admitted column
-                    DataCell(Text(record['ipid'] ?? 'Unknown')),     // IPID column
-                    DataCell(
-                      ElevatedButton(
-                        onPressed: () {
-                          // Navigate to the PatientReportScreen with IPID
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PatientReportScreen(ipid: record['ipid']!,patientId: widget.patientId,),
-                            ),
-                          );
-                        },
-                        child: Text(record['report'] ?? 'View Report'),
-                      ),
-                    ),
-                  ]);
-                }).toList(),
-              ),
-            ),
-          ],
-        ),
-      ),
+  factory Patient.fromJson(Map<String, dynamic> json) {
+    return Patient(
+      patientId: json['patient_id'] ?? '',
+      firstName: json['first_name'] ?? '',
+      gender: json['gender'] ?? '',
+      dob: json['dob'] ?? '',
+      phoneNo: json['phone_no'] ?? '',
+      fatherSpouseName: json['father_spouse_name'] ?? '',
+      adharNo: json['adharNo'] ?? '',
+      imageUrl: json['patientImage'] ?? '', // Binary image base64-encoded
     );
   }
 }
 
-
-class FeedbackScreen extends StatefulWidget {
-  final String patientId;
-  final String category;
-
-  FeedbackScreen({required this.patientId, required this.category});
-
-  @override
-  _FeedbackScreenState createState() => _FeedbackScreenState();
-}
-
-class _FeedbackScreenState extends State<FeedbackScreen> {
-  final TextEditingController _feedbackController = TextEditingController();
-  bool isLoading = false;
-
-  Future<void> submitFeedback() async {
-    setState(() {
-      isLoading = true;
-    });
-
-    // Prepare the feedback data
-    final feedbackData = {
-      'patient_id': widget.patientId,
-      'category': widget.category,
-      'feedback': _feedbackController.text,
-    };
-
-    try {
-      final response = await http.post(
-        Uri.parse('${AppConfig.apiUrl1}/submitFeedback'), // Update with your endpoint
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(feedbackData),
-      );
-
-      if (response.statusCode == 200) {
-        // Handle successful submission
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Feedback submitted successfully!'),
-        ));
-        Navigator.pop(context); // Go back to the previous screen
-      } else {
-        // Handle error
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Failed to submit feedback. Please try again.'),
-        ));
-      }
-    } catch (e) {
-      // Handle network or other errors
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('An error occurred. Please try again.'),
-      ));
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Submit Feedback'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Category: ${widget.category}',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Patient ID: ${widget.patientId}',
-              style: TextStyle(fontSize: 16),
-            ),
-            SizedBox(height: 10),
-            TextField(
-              controller: _feedbackController,
-              maxLines: 5,
-              decoration: InputDecoration(
-                labelText: 'Your Feedback',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            SizedBox(height: 10),
-            isLoading
-                ? Center(child: CircularProgressIndicator())
-                : ElevatedButton(
-              onPressed: () {
-                if (_feedbackController.text.isNotEmpty) {
-                  submitFeedback();
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text('Please write some feedback.'),
-                  ));
-                }
-              },
-              child: Text('Feedback'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

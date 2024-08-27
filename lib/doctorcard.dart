@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 class DoctorCard extends StatelessWidget {
   final String name;
   final String specialty;

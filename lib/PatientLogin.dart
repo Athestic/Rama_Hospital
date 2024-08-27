@@ -1,12 +1,12 @@
-import 'package:bottom_navigation/patient_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences
-import 'package:bottom_navigation/PatientLogin.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sizer/sizer.dart';
+import 'patient_profile.dart';
 import 'Homepage.dart';
-import 'PatientRegistrationApp.dart';
-import 'app_config.dart';
+import 'colors.dart';
+
 class PatientLogin extends StatefulWidget {
   @override
   _PatientLoginState createState() => _PatientLoginState();
@@ -14,57 +14,70 @@ class PatientLogin extends StatefulWidget {
 
 class _PatientLoginState extends State<PatientLogin> {
   bool _obscureText = true;
-  final TextEditingController _patientidController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final patientId = prefs.getString('patientId');
+    final token = prefs.getString('jwtToken');
+
+    if (patientId != null && token != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+            builder: (context) => PatientProfileScreen(patientId: patientId)),
+      );
+    }
+  }
+
   Future<void> _loginPatient() async {
-    final String patient_id = _patientidController.text;
+    final String phoneNo = _phoneController.text;
     final String password = _passwordController.text;
 
     final Map<String, dynamic> payload = {
-      'patient_id':patient_id,
+      'phone_no': phoneNo,
       'password': password,
     };
 
     try {
       final response = await http.post(
-        Uri.parse('${AppConfig.apiUrl1}${AppConfig.patientLoginEndpoint}'),
+        Uri.parse('http://192.168.1.106:8081/api/HospitalApp/PatientLogin'),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
         body: jsonEncode(payload),
       );
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        final patientId = responseData['patientId'] ?? ''; // Correct key name
-        final message = responseData['message'] ?? ''; // Provide default value if null
+        final token = responseData['message'] ?? '';
+        final patientId = responseData['patientId'] ?? '';
 
-        if (patientId.isEmpty) {
-          // Handle the error if patientId is empty
-          print('Error: patientId is empty');
-          return;
+        if (patientId.isNotEmpty && token.isNotEmpty) {
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setString('patientId', patientId);
+          await prefs.setString('jwtToken', token);
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (context) => PatientProfileScreen(patientId: patientId)),
+          );
+        } else {
+          _showErrorDialog('Login failed', 'Incorrect phone number or password.');
         }
-
-        // Save the patient ID and message to shared preferences
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('patientId', patientId);
-        await prefs.setString('message', message);
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => PatientProfileScreen(patientId: patientId)),
-        );
       } else {
         _showErrorDialog('Login failed', 'Incorrect phone number or password.');
-        print('Login failed: ${response.body}');
       }
     } catch (error) {
       _showErrorDialog('Error', 'An error occurred. Please try again.');
-      print('Error occurred: $error');
     }
   }
 
@@ -90,94 +103,104 @@ class _PatientLoginState extends State<PatientLogin> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Patient Login',
-          style: TextStyle(color: Colors.black, fontSize: 25, fontWeight: FontWeight.bold),
-        ),
-        automaticallyImplyLeading: true, // This ensures the back icon is displayed
-      ),
-      body: Container(
-        color: Colors.grey[200], // Set the background color
-        padding: const EdgeInsets.all(26.0),
-        child: Column(
-          children: <Widget>[
-            Spacer(),
-            Text(
-              'Welcome to Rama',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: 10.0), // Adjust the top padding value as needed
-              child: Image.asset(
-                'assets/Ramalogobgr.png', // Update the path to your logo asset
-                height: 130,
+    return Sizer(
+      builder: (context, orientation, deviceType) {
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(
+              "Account Login",
+              style: TextStyle(
+                color: AppColors.primaryColor,
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.bold,
               ),
             ),
-            TextField(
-              controller: _patientidController,
-              decoration: InputDecoration(
-                labelText: 'Phone Number',
-                prefixIcon: Icon(Icons.phone),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            SizedBox(height: 16.0),
-            TextField(
-              controller: _passwordController,
-              decoration: InputDecoration(
-                labelText: 'Password',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.lock),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscureText ? Icons.visibility : Icons.visibility_off,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _obscureText = !_obscureText;
-                    });
-                  },
-                ),
-              ),
-              obscureText: _obscureText,
-            ),
-            SizedBox(height: 14.0),
-            Container(
-              width: double.infinity, // Make the button full width
-              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0), // Add padding for alignment
-              child: ElevatedButton(
-                onPressed: _loginPatient,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20), // Curved sides
-                  ),
-                  padding: EdgeInsets.symmetric(vertical: 16.0), // Vertical padding
-                ),
-                child: Text(
-                  'Log In',
-                  style: TextStyle(fontSize: 16), // Text style
-                ),
-              ),
-            ),
-            SizedBox(height: 10.0),
-            TextButton(
+            centerTitle: true,
+            automaticallyImplyLeading: false,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back, size: 24.sp),
               onPressed: () {
-                Navigator.push(
+                Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (context) => PatientRegistrationForm()),
+                  MaterialPageRoute(builder: (context) => HomeScreen()),
+                      (Route<dynamic> route) => false,
                 );
               },
-              child: Text('Register as a new Patient'),
             ),
-            Spacer(),
-          ],
-        ),
-      ),
+          ),
+          body: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 90.w), // Set a max width for large screens
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: <Widget>[
+                      SizedBox(height: orientation == Orientation.portrait ? 0.h : 4.h),
+                      Padding(
+                        padding: EdgeInsets.only(top: 1.h),
+                        child: Image.asset(
+                          'assets/logo/mainlogo.png',
+                          height: orientation == Orientation.portrait ? 15.h : 10.h,
+                          width: orientation == Orientation.portrait ? 75.w : 60.w,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      SizedBox(height: 3.h),
+                      TextField(
+                        controller: _phoneController,
+                        decoration: InputDecoration(
+                          labelText: 'Phone Number',
+                          prefixIcon: Icon(Icons.phone, size: 18.sp),
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      SizedBox(height: 2.h),
+                      TextField(
+                        controller: _passwordController,
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          prefixIcon: Icon(Icons.lock, size: 18.sp),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscureText ? Icons.visibility : Icons.visibility_off,
+                              size: 18.sp,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscureText = !_obscureText;
+                              });
+                            },
+                          ),
+                          border: OutlineInputBorder(),
+                        ),
+                        obscureText: _obscureText,
+                      ),
+                      SizedBox(height: 3.h),
+                      Container(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _loginPatient,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            padding: EdgeInsets.symmetric(vertical: 2.h),
+                          ),
+                          child: Text('Log In', style: TextStyle(fontSize: 12.sp)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

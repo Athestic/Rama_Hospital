@@ -1,5 +1,5 @@
-import 'package:bottom_navigation/PatientLogin.dart';
-import 'package:bottom_navigation/colors.dart';
+import 'PatientLogin.dart';
+import 'colors.dart';
 import 'package:flutter/material.dart';
 
 class ThankYouScreen extends StatelessWidget {

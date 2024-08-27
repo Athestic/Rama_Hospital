@@ -1,7 +1,6 @@
 class AppConfig {
 
-  static const String apiUrl1 = 'http://192.168.1.179:8081/api';
-  // static const String apiUrl1 = 'http://192.168.1.179:8080/api';
+  static const String apiUrl1 = 'http://192.168.1.106:8081/api';
 
   // Patient Registration Endpoints
   static const String patientRegistrationStateEndpoint = '/HospitalApp/GetState';
@@ -9,7 +8,6 @@ class AppConfig {
   static const String patientRegistrationGetReligionsEndpoint = '/HospitalApp/GetReligions';
 
   // Homepage Endpoints
-  static const String superspecialityEndpoint = '/HospitalApp/Superspecialitytitles';
   static const String specialityEndpoint = '/HospitalApp/Specialitytitles';
 
   // Login Endpoints
