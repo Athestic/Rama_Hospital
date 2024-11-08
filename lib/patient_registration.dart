@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart'; // Add this import for date formatting
+import 'package:intl/intl.dart'; // For date formatting
 import 'review.dart';
 
 void main() {
@@ -53,11 +53,12 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
   String? doctorId;
   String? doctorName;
   double? consultationFee;
-  String? patientId; // For storing patient ID if already logged in
-  DateTime? _selectedDate; // Store the selected date
+  String? patientId;
+  DateTime? _selectedDate;
   String? doctorImg;
-  String? experience; // For storing doctor image URL or path
+  String? experience;
   String? _selectedTimeSlot;
+  String? specializationName; // New field for specialization
 
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
@@ -76,11 +77,9 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
     _fetchStates();
     _getunitId();
     _getdoctorId();
-    _getdoctorName();
     _getconsultationfee();
-    _checkLoginStatus(); // Check if the user is already logged in
+    _checkLoginStatus();
   }
-
   Future<void> _getunitId() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     unitId = prefs.getString('unitId') ?? '0';
@@ -91,14 +90,10 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
     doctorId = prefs.getString('doctorId') ?? '0';
   }
 
-  Future<void> _getdoctorName() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    doctorName = prefs.getString('doctorName') ?? '0';
-  }
 
   Future<void> _getconsultationfee() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    consultationFee = prefs.getDouble('consultationFee') ?? 0.0;
+    consultationFee = prefs.getDouble('consultationFee') ?? 50.0;
   }
 
   @override
@@ -130,24 +125,24 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
     }
   }
 
-
   Future<void> _checkLoginStatus() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     patientId = prefs.getString('patientId');
+    doctorName = prefs.getString('doctorName');
+    doctorImg = prefs.getString('doctorImg');
+    experience = prefs.getString('experience');
+    specializationName = prefs.getString('specializationName'); // Fetch specializationName
+
 
     if (patientId != null && patientId!.isNotEmpty) {
       setState(() {
-        isPatientLoggedIn = true; // Set flag to true if patient is logged in
+        isPatientLoggedIn = true;
       });
       print('Patient already logged in with ID: $patientId');
-      // Fetch required data and show the date/time picker immediately
-      await _getunitId();
-      await _getdoctorId();
-      await _getdoctorName();
-      await _getconsultationfee();
       _showDateTimePickerBottomSheet();
     }
   }
+
 
   Future<void> _showDateTimePickerBottomSheet() async {
     DateTime now = DateTime.now();
@@ -396,34 +391,35 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
 
 
   // Create an instance of the ReviewScreen with the required parameters
-    void _showReviewScreen() async {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ReviewScreen(
-            firstName: _firstNameController.text,
-            lastName: _lastNameController.text,
-            gender: _gender,
-            state: _selectedState,
-            age: _ageController.text,
-            phoneNumber: _phoneNumberController.text,
-            selectedDate: _selectedDate,
-            selectedTimeSlot: _selectedTimeSlot,
-            guardian: _guardianNameController.text,
-            aadhaarNumber: _aadhaarNumberController.text,
-            address: _addressController.text,
-            password: _PasswordController.text,
-            unitId: unitId,
-            doctorId: doctorId,
-            experience: experience,
-            doctorImg: doctorImg,
-            doctorName: doctorName,
-            consultationFee: consultationFee,
-            patientId: patientId, // Pass patientId to ReviewScreen
-          ),
+  void _showReviewScreen() async {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ReviewScreen(
+          firstName: _firstNameController.text,
+          lastName: _lastNameController.text,
+          gender: _gender,
+          state: _selectedState,
+          age: _ageController.text,
+          phoneNumber: _phoneNumberController.text,
+          selectedDate: _selectedDate,
+          selectedTimeSlot: _selectedTimeSlot,
+          guardian: _guardianNameController.text,
+          aadhaarNumber: _aadhaarNumberController.text,
+          address: _addressController.text,
+          password: _PasswordController.text,
+          unitId: unitId,
+          doctorId: doctorId,
+          experience: experience,
+          doctorImg: doctorImg,
+          doctorName: doctorName,
+          consultationFee: consultationFee,
+          patientId: patientId,
+          specializationName: specializationName, // Pass specializationName
         ),
-      );
-    }
+      ),
+    );
+  }
 
 
   @override

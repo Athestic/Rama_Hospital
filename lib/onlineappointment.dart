@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:global/PatientRegistrationApp.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'dart:convert'; // for decoding base64 images
-import 'patient_registration.dart';
 import 'colors.dart';
 import 'doctor_list_screen.dart';
+import 'patient_registration.dart';
+import 'package:http/http.dart' as http;
+import 'jwt.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 
 class DoctorDetailScreen extends StatefulWidget {
   final Doctor doctor;
@@ -27,23 +30,28 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final screenHeight = MediaQuery.of(context).size.height;
+        final dialogWidth = screenWidth * 0.9;
+        final padding = screenWidth * 0.04;
+        final fontSize = screenWidth * 0.035;
+        final buttonPadding = screenHeight * 0.015;
+
         return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20.0),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
+          child: Container(
+            width: dialogWidth,
+            padding: EdgeInsets.all(padding),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Date picker (TableCalendar)
                 TableCalendar(
                   focusedDay: _focusedDay,
                   firstDay: DateTime.now(),
                   lastDay: DateTime.now().add(Duration(days: 30)),
-                  selectedDayPredicate: (day) {
-                    return isSameDay(_selectedDay, day);
-                  },
+                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
                   onDaySelected: (selectedDay, focusedDay) {
                     setState(() {
                       _selectedDay = selectedDay;
@@ -59,25 +67,29 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                       color: Colors.teal,
                       shape: BoxShape.circle,
                     ),
+                    markersAlignment: Alignment.bottomCenter,
+                    cellMargin: EdgeInsets.all(screenWidth * 0.01),
                   ),
                 ),
-                SizedBox(height: 20),
+                SizedBox(height: screenHeight * 0.02),
                 Text(
                   'Select Time Slot',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: fontSize,
                     fontWeight: FontWeight.bold,
                     color: Colors.teal,
                   ),
                 ),
-                SizedBox(height: 10),
-                // Time slots
+                SizedBox(height: screenHeight * 0.01),
                 Wrap(
-                  spacing: 8.0,
-                  runSpacing: 8.0,
+                  spacing: screenWidth * 0.02,
+                  runSpacing: screenHeight * 0.01,
                   children: timeSlots.map((timeSlot) {
                     return ChoiceChip(
-                      label: Text(timeSlot),
+                      label: Text(
+                        timeSlot,
+                        style: TextStyle(fontSize: fontSize),
+                      ),
                       selected: _selectedTimeSlot == timeSlot,
                       onSelected: (isSelected) {
                         setState(() {
@@ -94,18 +106,9 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                     );
                   }).toList(),
                 ),
-                SizedBox(height: 20),
-                // Confirm button
                 ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     if (_selectedTimeSlot != null) {
-                      // Proceed with the registration or other actions
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PatientRegistrationApp(),
-                        ),
-                      );
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -115,8 +118,11 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:AppColors.secondaryColor,
-                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    backgroundColor: AppColors.secondaryColor,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.05,
+                      vertical: buttonPadding,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -124,7 +130,7 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                   child: Text(
                     'Confirm',
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: fontSize,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
@@ -137,22 +143,27 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
       },
     );
   }
+
+
   void _toggleQualifications() {
     setState(() {
       _showQualifications = !_showQualifications;
-      _showAchievements = false; // Collapse achievements if open
+      _showAchievements = false;
     });
   }
 
   void _toggleAchievements() {
     setState(() {
       _showAchievements = !_showAchievements;
-      _showQualifications = false; // Collapse qualifications if open
+      _showQualifications = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final padding = screenWidth * 0.05;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -162,62 +173,51 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
             color: Colors.teal,
             fontFamily: 'Poppins',
             fontWeight: FontWeight.bold,
+            fontSize: screenWidth * 0.05,
           ),
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.symmetric(horizontal: padding, vertical: 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Doctor Image and Details
             Center(
               child: Column(
                 children: [
                   Container(
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: AppColors.secondaryColor,  // Adjust to match your border color
-                        width: 4.0, // Border thickness
+                        color: AppColors.secondaryColor,
+                        width: 4.0,
                       ),
-                      borderRadius: BorderRadius.circular(15), // Rounded corners
+                      borderRadius: BorderRadius.circular(15),
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(15.0),
                       child: widget.doctor.doctorImg != null
                           ? Image.memory(
                         base64Decode(widget.doctor.doctorImg!),
-                        height: 150,
-                        width: 150,
+                        height: screenWidth * 0.4,
+                        width: screenWidth * 0.4,
                         fit: BoxFit.cover,
                       )
-                          : Icon(Icons.person, size: 100),
+                          : Icon(Icons.person, size: screenWidth * 0.25),
                     ),
                   ),
                   SizedBox(height: 16),
                   Text(
                     'Dr. ${widget.doctor.doctorName}',
                     style: TextStyle(
-                      fontSize: 22,
+                      fontSize: screenWidth * 0.06,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   SizedBox(height: 8),
-                  // Text(
-                  //   '${widget.doctor.specializationId}',
-                  //   style: TextStyle(
-                  //     color: Colors.blue,
-                  //     fontFamily: 'Poppins',
-                  //     fontSize: 12,
-                  //     fontWeight: FontWeight.bold,
-                  //   ),
-                  // ),
-                  SizedBox(height: 8),
-                  // Container for Experience & Rating
                   Container(
-                    padding: const EdgeInsets.all(12.0),
+                    padding: EdgeInsets.all(12.0),
                     decoration: BoxDecoration(
                       color: AppColors.cardColor3,
                       borderRadius: BorderRadius.circular(10),
@@ -228,9 +228,9 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                         Text(
                           'Total Exp - ${widget.doctor.experience} yrs',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: screenWidth * 0.045,
                             color: Colors.black,
-                            fontWeight: FontWeight.bold
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                         SizedBox(width: 20),
@@ -240,7 +240,7 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                                 (index) => Icon(
                               index < 4 ? Icons.star : Icons.star_border,
                               color: Colors.amber,
-                              size: 20,
+                              size: screenWidth * 0.05,
                             ),
                           ),
                         ),
@@ -250,18 +250,19 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                 ],
               ),
             ),
-
             SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton(
                   onPressed: _toggleQualifications,
-                  child: Text('Qualifications',
+                  child: Text(
+                    'Qualifications',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                    ),),
+                      color: Colors.white,
+                    ),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _showQualifications
                         ? AppColors.primaryColor
@@ -274,11 +275,13 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                 SizedBox(width: 10),
                 ElevatedButton(
                   onPressed: _toggleAchievements,
-                  child: Text('Achievements',
+                  child: Text(
+                    'Achievements',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
-                    ),),
+                    ),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _showAchievements
                         ? AppColors.secondaryColor
@@ -291,33 +294,30 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
               ],
             ),
             SizedBox(height: 20),
-            // Display Qualifications if expanded
             if (_showQualifications)
               Container(
-                padding: const EdgeInsets.all(12.0),
+                padding: EdgeInsets.all(12.0),
                 decoration: BoxDecoration(
                   color: Colors.teal.shade50,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  'MBBS: All India Institute of Medical Sciences (AIIMS), New Delhi, 2005  \n'
-                      'MD : Maulana Azad Medical College, New Delhi, 2009'
-                  ,
-                  style: TextStyle(fontSize: 16),
+                  'MBBS: All India Institute of Medical Sciences (AIIMS), New Delhi, 2005\n'
+                      'MD: Maulana Azad Medical College, New Delhi, 2009',
+                  style: TextStyle(fontSize: screenWidth * 0.04),
                 ),
               ),
-            // Display Achievements if expanded
             if (_showAchievements)
               Container(
-                padding: const EdgeInsets.all(12.0),
+                padding: EdgeInsets.all(12.0),
                 decoration: BoxDecoration(
                   color: Colors.teal.shade50,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  'Best Cardiologist Award by the Indian Medical Association, 2018 \n'
-                      'Young Investigator Award at the European Society of Cardiology Congress, 2017',
-                  style: TextStyle(fontSize: 16),
+                  'Awarded the prestigious Padma Shri for exceptional service in medicine.\n'
+                      'Published over 50 research papers in international journals.',
+                  style: TextStyle(fontSize: screenWidth * 0.04),
                 ),
               ),
             SizedBox(height: 20),
@@ -365,19 +365,19 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
               ),
             ),
             SizedBox(height: 10),
-    Container(
-    padding: const EdgeInsets.all(12.0),
-    decoration: BoxDecoration(
-    color: AppColors.cardColor3,
-    borderRadius: BorderRadius.circular(10),
-    ),
-    // About Doctor
-    child:
-            Text(
-              'Dr. Rohit Gupta is a highly skilled and compassionate Cardiologist with over 15 years of experience...',
-              style: TextStyle(fontSize: 16),
+            Container(
+              padding: const EdgeInsets.all(12.0),
+              decoration: BoxDecoration(
+                color: AppColors.cardColor3,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              // About Doctor
+              child:
+              Text(
+                'Dr. Rohit Gupta is a highly skilled and compassionate Cardiologist with over 15 years of experience...',
+                style: TextStyle(fontSize: 16),
+              ),
             ),
-    ),
             SizedBox(height: 20),
             // Choose Slot Button
             Center(

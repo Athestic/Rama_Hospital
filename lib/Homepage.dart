@@ -1,7 +1,7 @@
 
 import 'package:global/Healthpackages.dart';
 import 'package:global/Medicine.dart';
-import 'package:global/bookappointment.dart';
+import 'package:global/getappointmentandservices.dart';
 import 'package:global/feedback.dart';
 import 'package:global/laborderlist.dart';
 import 'package:global/labtest.dart';
@@ -13,13 +13,14 @@ import 'PatientLogin.dart';
 import 'colors.dart';
 import 'patient_registration.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'doctorappointment.dart';
+import 'getspecialization.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
-import 'privacy.dart';
+import 'about.dart';
 import 'termsandcondition.dart';
+import 'Privacy.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -444,7 +445,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => PrivacyPolicyScreen()),
+                    MaterialPageRoute(builder: (context) => Privacy()),
                   );
                 },
               ),
@@ -452,7 +453,12 @@ class _HomeScreenState extends State<HomeScreen> {
               ListTile(
                 leading: Icon(Icons.info_outline),
                 title: Text('About Us'),
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => About()),
+                  );
+                },
               ),
               ListTile(
                 leading: Icon(Icons.rule),

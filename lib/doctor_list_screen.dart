@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:global/DoctorDetailScreen.dart';
 import 'package:global/colors.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'inpersonvisit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-
+import 'onlineappointment.dart';
+import 'inpersonvisit.dart';
 
 class Doctor {
   final String doctorName;
@@ -34,16 +32,6 @@ class Doctor {
   });
 
   factory Doctor.fromJson(Map<String, dynamic> json) {
-    // Fix: handle the experience field properly (parsing it from string to int)
-    int experience = 0;
-    if (json['experience'] != null) {
-      try {
-        experience = int.parse(json['experience']);
-      } catch (e) {
-        experience = 0; // Default if parsing fails
-      }
-    }
-
     return Doctor(
       doctorName: json['doctor_name'] ?? 'Unknown Doctor',
       unitId: json['unit_id'] ?? 0,
@@ -54,7 +42,7 @@ class Doctor {
       toDate: json['to_date'] ?? '',
       todayOpd: json['todayOpd'] ?? 0,
       doctorImg: json['doctor_image']?.toString(),
-      experience: json['experience'] ?? '', // Assign the parsed experience
+      experience: json['experience']?.toString() ?? '0',
     );
   }
 }
@@ -70,12 +58,20 @@ class DoctorsScreen extends StatelessWidget {
     required this.fetchDoctors,
   });
 
+  Future<void> storeDoctorDetails(Doctor doctor, String specializationName) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('doctorName', doctor.doctorName);
+    await prefs.setString('doctorImg', doctor.doctorImg ?? '');
+    await prefs.setString('experience', doctor.experience ?? '0');
+    await prefs.setString('specializationName', specializationName);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          '$specializationName',
+          specializationName,
           style: TextStyle(
             color: Colors.teal,
             fontFamily: 'Poppins',
@@ -86,7 +82,6 @@ class DoctorsScreen extends StatelessWidget {
       ),
       body: Column(
         children: [
-          // Search bar
           Padding(
             padding: const EdgeInsets.all(15.0),
             child: Container(
@@ -103,7 +98,6 @@ class DoctorsScreen extends StatelessWidget {
               ),
             ),
           ),
-
           Expanded(
             child: FutureBuilder<List<Doctor>>(
               future: fetchDoctors,
@@ -151,29 +145,24 @@ class DoctorsScreen extends StatelessWidget {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // First Column: Doctor Info Section
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Doctor name and rating
                                     Row(
                                       children: [
                                         Expanded(
-                                          child:
-                                          Text(
-                                            doctor.doctorName, // Use doctorName from the API
+                                          child: Text(
+                                            doctor.doctorName,
                                             style: TextStyle(
                                               fontSize: 15,
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
                                         ),
-
                                       ],
                                     ),
                                     SizedBox(height: 5),
-                                    // Specialization
                                     Text(
                                       'ConsultationFee: ${doctor.consultationFee}',
                                       style: TextStyle(
@@ -183,18 +172,9 @@ class DoctorsScreen extends StatelessWidget {
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    SizedBox(height: 5), // Space between rating and experience
+                                    SizedBox(height: 5),
                                     Text(
-                                      'Qualifications :${doctor. qualification}', // Experience from API
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                    SizedBox(height: 5), // Space between rating and experience
-                                    Text(
-                                      'Experience :${doctor.experience}', // Experience from API
+                                      'Qualifications: ${doctor.qualification}',
                                       style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
@@ -203,44 +183,49 @@ class DoctorsScreen extends StatelessWidget {
                                     ),
                                     SizedBox(height: 5),
                                     Text(
-                                      'Language : English,Hindi',
+                                      'Experience: ${doctor.experience}',
                                       style: TextStyle(
-                                        // color: Colors.black,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                    SizedBox(height: 5),
+                                    Text(
+                                      'Language: English, Hindi',
+                                      style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
                                         fontFamily: 'Poppins',
                                       ),
                                     ),
-
                                     SizedBox(height: 10),
                                     Row(
                                       children: [
-                                        // Hospital Visit button
                                         SizedBox(
                                           width: 100,
                                           height: 35,
                                           child: ElevatedButton(
                                             onPressed: () async {
-                                              SharedPreferences prefs = await SharedPreferences.getInstance();
-
-                                              await prefs.setString('unitId', doctor.unitId.toString());
-                                              await prefs.setString('doctorId', doctor.doctorId.toString());
-                                              await prefs.setDouble('consultationFee', doctor.consultationFee);
-
-                                              // Navigate to DoctorDetailScreen or any other appropriate screen
+                                              await storeDoctorDetails(
+                                                  doctor, specializationName);
                                               Navigator.push(
                                                 context,
                                                 MaterialPageRoute(
-                                                  builder: (context) => DoctorDetailScreeninpersonvisit(doctor: doctor),
+                                                  builder: (context) =>
+                                                      DoctorDetailScreeninpersonvisit(
+                                                          doctor: doctor),
                                                 ),
                                               );
                                             },
-
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: AppColors.primaryColor,
-                                              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                              backgroundColor:
+                                              AppColors.primaryColor,
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: 10, vertical: 10),
                                               shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(7),
+                                                borderRadius:
+                                                BorderRadius.circular(7),
                                               ),
                                             ),
                                             child: Text(
@@ -254,7 +239,6 @@ class DoctorsScreen extends StatelessWidget {
                                           ),
                                         ),
                                         SizedBox(width: 5),
-                                        // Video Consultation button
                                         SizedBox(
                                           width: 100,
                                           height: 35,
@@ -263,15 +247,20 @@ class DoctorsScreen extends StatelessWidget {
                                               Navigator.push(
                                                 context,
                                                 MaterialPageRoute(
-                                                  builder: (context) => DoctorDetailScreen(doctor: doctor),
+                                                  builder: (context) =>
+                                                      DoctorDetailScreen(
+                                                          doctor: doctor),
                                                 ),
-                                              ); // / Navigate to Video Consultation screen
+                                              );
                                             },
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: AppColors.secondaryColor,
-                                              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                              backgroundColor:
+                                              AppColors.secondaryColor,
+                                              padding: EdgeInsets.symmetric(
+                                                  horizontal: 10, vertical: 10),
                                               shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(7),
+                                                borderRadius:
+                                                BorderRadius.circular(7),
                                               ),
                                             ),
                                             child: Text(
@@ -290,20 +279,18 @@ class DoctorsScreen extends StatelessWidget {
                                 ),
                               ),
                               SizedBox(width: 5),
-                              // Second Column: Doctor Image Section
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
                                 child: SizedBox(
                                   width: 100,
                                   height: 127,
-                                  child: doctorImage, // Display the doctor image
+                                  child: doctorImage,
                                 ),
                               ),
                             ],
                           ),
                         ),
                       );
-
                     },
                   );
                 }
@@ -319,7 +306,7 @@ class DoctorsScreen extends StatelessWidget {
 // Method to fetch doctors by specialization
 Future<List<Doctor>> fetchDoctorsBySpecialization(int specializationId) async {
   final response = await http.get(Uri.parse(
-      'http://192.168.1.106:8081/api/HospitalApp/GetUnitDetails?doctorId=7&specId=$specializationId')); // Adjusted API URL
+      'http://192.168.1.106:8081/api/HospitalApp/GetUnitDetails?doctorId=7&specId=$specializationId'));
 
   if (response.statusCode == 200) {
     List<dynamic> jsonData = json.decode(response.body);

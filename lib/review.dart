@@ -27,6 +27,7 @@ class ReviewScreen extends StatefulWidget {
   final double? consultationFee;
   final String? patientId;
   final double serviceCharge = 50;
+  final String? specializationName;
 
   ReviewScreen({
     required this.firstName,
@@ -48,6 +49,7 @@ class ReviewScreen extends StatefulWidget {
     this.doctorName,
     this.consultationFee,
     this.patientId,
+    required this.specializationName,
   });
 
   @override
@@ -67,7 +69,6 @@ class _ReviewScreenState extends State<ReviewScreen> {
   void initState() {
     super.initState();
 
-
     // Initialize with provided values
     firstName = widget.firstName;
     lastName = widget.lastName;
@@ -86,7 +87,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
   Future<void> fetchPatientDetails() async {
     final String apiUrl = 'http://192.168.1.106:8081/api/HospitalApp/GetPatientById?PatientId=${widget.patientId}';
     try {
-      final response = await http.get(Uri.parse(apiUrl)); // Removed the redundant query parameter
+      final response = await http.get(Uri.parse(apiUrl));
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         setState(() {
@@ -112,6 +113,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   Future<void> registerPatient(BuildContext context) async {
     if (widget.patientId != null) {
+      print("Logged-in Patient ID: ${widget.patientId}");
       await _registerOpd(context, widget.patientId!, widget.unitId!, widget.doctorId!, widget.consultationFee!);
       return;
     }
@@ -131,13 +133,15 @@ class _ReviewScreenState extends State<ReviewScreen> {
       'AdharNo': aadhaarNumber,
       'Password': widget.password,
     };
-
+    // Print the payload for patient registration
+    print("Patient Registration Payload: ${jsonEncode(postData)}");
     try {
       final response = await http.post(
         Uri.parse(apiUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(postData),
       );
+
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
@@ -162,35 +166,30 @@ class _ReviewScreenState extends State<ReviewScreen> {
     }
 
     final String formattedDate = DateFormat('yyyy-MM-dd').format(widget.selectedDate!);
-    // Construct the OPD registration payload
     final opdPayload = {
       "ObjOpd": {
-        "patient_id": patientId,
-        "registration_date": formattedDate,
+        "patient_id": "RSSH-0001687752",
+        "registration_date": "2024-10-14"
       },
       "ObjOpdDetail": {
-        "unit_id": unitId,
-        "doctor_id": doctorId,
+        "unit_id": 49,
+        "doctor_id": 544
       },
       "ObjBill": {
-        "patient_id": patientId, // Use patientId directly
+        "patient_id": "RSSH-0001687752"
       },
       "ObjBillDetail": {
-        "service_unit_price": consultationFee,
-        // Use the consultationFee parameter
-        "doctor_id": doctorId,
+        "service_unit_price": 30.00,
+        "doctor_id": 544
       },
       "ObjPayment": {
-        "paid_amount": consultationFee,
-        // Use the consultationFee for paid_amount
-        "payment_mode": "Cash",
-        "transaction_id": "",
-        // If you have a transaction ID, include it
-      },
+        "paid_amount": 30.00
+      }
     };
-    // Print the payload to the terminal to check its structure
-    print("OPD Payload: ${jsonEncode(
-        opdPayload)}"); // Using jsonEncode for better readability
+
+
+
+    print("OPD Payload: ${jsonEncode(opdPayload)}");
     try {
       final response = await http.post(
         Uri.parse('http://192.168.1.106:8081/api/HospitalApp/OpdRegistration'),
@@ -218,22 +217,34 @@ class _ReviewScreenState extends State<ReviewScreen> {
     }
   }
 
+  Widget _buildDoctorImage(String base64String) {
+    try {
+      return Image.memory(
+        base64Decode(base64String),
+        height: MediaQuery.of(context).size.height * 0.2,
+        width: MediaQuery.of(context).size.width * 0.4,
+        fit: BoxFit.cover,
+      );
+    } catch (e) {
+      print('Invalid image data: $e');
+      return Icon(Icons.person, size: MediaQuery.of(context).size.height * 0.15);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Build UI (unchanged)
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
     return WillPopScope(
       onWillPop: () async {
-        // Navigate back to the PatientRegistration screen on back press
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => PatientRegistrationForm(),
           ),
         );
-        return false; // Prevent default back button behavior
+        return false;
       },
       child: Scaffold(
         appBar: AppBar(
@@ -251,301 +262,308 @@ class _ReviewScreenState extends State<ReviewScreen> {
           title: Text('Review Booking', style: TextStyle(color: AppColors.primaryColor, fontFamily: 'Poppins', fontWeight: FontWeight.bold)),
           centerTitle: true,
         ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.all(screenWidth * 0.04),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        // Display doctor image and details
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(15.0),
-                          child: widget.doctorImg != null  ? Image.memory(
-                            base64Decode(widget.doctorImg!),
-                            height: screenHeight * 0.2,
-                            width: screenWidth * 0.4,
-                            fit: BoxFit.cover,
-                          ) : Icon(Icons.person, size: screenHeight * 0.15),
-                        ),
-                        SizedBox(width: screenWidth * 0.04),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(widget.doctorName ?? 'Dr. Kavita Mehta', style: TextStyle(fontSize: screenWidth * 0.05, fontWeight: FontWeight.bold)),
-                              Text('General Medicine', style: TextStyle(fontSize: screenWidth * 0.04, color: Colors.black,fontFamily:"Poppins")),
-                              Text(widget.experience ?? '3+yrs', style: TextStyle(fontSize: screenWidth * 0.04, color: Colors.blue)),
-                              SizedBox(height: 8),
-                              Container(
-                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(border: Border.all(color: Colors.black26), borderRadius: BorderRadius.circular(4)),
-                                child: Text('₹${widget.consultationFee?.toStringAsFixed(2) ?? '0.00'}', style: TextStyle(fontSize: screenWidth * 0.045)),
-                              ),
-                            ],
+        body: Column(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.all(screenWidth * 0.04),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(15.0),
+                            child: (widget.doctorImg != null && widget.doctorImg!.isNotEmpty)
+                                ? _buildDoctorImage(widget.doctorImg!)
+                                : Icon(Icons.person, size: screenHeight * 0.15),
                           ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: screenHeight * 0.04), // Dynamic spacing
-
-                    // Appointment Type and Date/Time Info
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.green),
-                              borderRadius: BorderRadius.circular(8),
+                          SizedBox(width: screenWidth * 0.04),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.doctorName ?? 'Dr. Unknown',
+                                  style: TextStyle(fontSize: screenWidth * 0.05, fontWeight: FontWeight.bold),
+                                ),
+                                SizedBox(height: screenHeight * 0.005),
+                                Text(
+                                  widget.specializationName ?? 'Specialization not available',
+                                  style: TextStyle(fontSize: screenWidth * 0.04),
+                                ),
+                                SizedBox(height: screenHeight * 0.005),
+                                Text(
+                                  'Experience: ${widget.experience ?? 'N/A'} years',
+                                  style: TextStyle(fontSize: screenWidth * 0.04),
+                                ),
+                                SizedBox(height: 8),
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(border: Border.all(color: Colors.black26), borderRadius: BorderRadius.circular(4)),
+                                  child: Text('₹${widget.consultationFee?.toStringAsFixed(2) ?? '0.00'}', style: TextStyle(fontSize: screenWidth * 0.045)),
+                                ),
+                              ],
                             ),
-                            child: Center(
-                              child: Text(
-                                'In Person Visit',
-                                style: TextStyle(
-                                  color: Colors.green,
-                                  fontSize: screenWidth *
-                                      0.035, // Dynamic font size
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: screenHeight * 0.04), // Dynamic spacing
+
+                      // Appointment Type and Date/Time Info
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.green),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'In Person Visit',
+                                  style: TextStyle(
+                                    color: Colors.green,
+                                    fontSize: screenWidth *
+                                        0.035, // Dynamic font size
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                        SizedBox(width: screenWidth * 0.04), // Dynamic spacing
-                        Expanded(
-                          child: Row(
+                          SizedBox(width: screenWidth * 0.04), // Dynamic spacing
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Icon(Icons.calendar_today, color: Colors.grey,
+                                    size: screenWidth * 0.05),
+                                SizedBox(width: 4),
+                                Text(
+                                  DateFormat('d MMM yyyy').format(
+                                    widget.selectedDate ?? DateTime.now(),
+                                  ),
+                                  style: TextStyle(color: Colors.black87,
+                                      fontSize: screenWidth * 0.035),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(width: screenWidth * 0.04),
+                          Row(
                             children: [
-                              Icon(Icons.calendar_today, color: Colors.grey,
+                              Icon(Icons.access_time, color: Colors.grey,
                                   size: screenWidth * 0.05),
                               SizedBox(width: 4),
                               Text(
-                                DateFormat('d MMM yyyy').format(
-                                  widget.selectedDate ?? DateTime.now(),
-                                ),
+                                widget.selectedTimeSlot ?? 'Time not selected',
                                 style: TextStyle(color: Colors.black87,
                                     fontSize: screenWidth * 0.035),
                               ),
                             ],
                           ),
-                        ),
-                        SizedBox(width: screenWidth * 0.04),
-                        Row(
-                          children: [
-                            Icon(Icons.access_time, color: Colors.grey,
-                                size: screenWidth * 0.05),
-                            SizedBox(width: 4),
-                            Text(
-                              widget.selectedTimeSlot ?? 'Time not selected',
-                              style: TextStyle(color: Colors.black87,
-                                  fontSize: screenWidth * 0.035),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: screenHeight * 0.04), // Dynamic spacing
-
-                    // Patient Info Section
-                    // Patient Info Section
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Patient Info',
-                          style: TextStyle(
-                            // fontSize: isWideScreen ? 18 : 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            // Navigate to change patient info
-                          },
-                          child: Text(
-                            'Change',
-                            style: TextStyle(color: Colors.blue),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '$firstName $lastName',
-                            style: TextStyle(
-                              // fontSize: isWideScreen ? 16 : 14,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        SizedBox(width: 10),
-                        Text(
-                          gender ?? 'Male',
-                          style: TextStyle(
-                            // fontSize: isWideScreen ? 16 : 14,
-                          ),
-                        ),
-
-                      ],
-                    ),
-
-                    SizedBox(height: screenHeight * 0.02), // Dynamic spacing
-
-                    // Charges Information
-                    Text(
-                      'Total Charges',
-                      style: TextStyle(
-                        fontSize: screenWidth * 0.045, // Dynamic font size
-                        fontWeight: FontWeight.bold,
+                        ],
                       ),
-                    ),
-                    Container(
-                      padding: EdgeInsets.all(screenWidth * 0.03),
-                      // Dynamic padding
-                      margin: EdgeInsets.symmetric(
-                          vertical: screenHeight * 0.02),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: AppColors.secondaryColor),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      SizedBox(height: screenHeight * 0.04), // Dynamic spacing
+
+                      // Patient Info Section
+                      // Patient Info Section
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _buildChargesRow(
-                            'Consultation Fees',
-                            '₹${widget.consultationFee?.toStringAsFixed(2) ?? '0.00'}',
-                            screenWidth,
+                          Text(
+                            'Patient Info',
+                            style: TextStyle(
+                              // fontSize: isWideScreen ? 18 : 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                          _buildChargesRow(
-                            'Service Charges',
-                            '₹${widget.serviceCharge.toStringAsFixed(2)}',
-                            screenWidth,
-                          ),
-                          Divider(),
-                          _buildChargesRow(
-                            'Pay Now',
-                            '₹${totalCharges.toStringAsFixed(2)}',
-                            screenWidth,
-                            isBold: true,
+                          GestureDetector(
+                            onTap: () {
+                              // Navigate to change patient info
+                            },
+                            child: Text(
+                              'Change',
+                              style: TextStyle(color: Colors.blue),
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                    SizedBox(height: screenHeight * 0.04), // Dynamic spacing
-                  ],
+                      SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '$firstName $lastName',
+                              style: TextStyle(
+                                // fontSize: isWideScreen ? 16 : 14,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          Text(
+                            gender ?? 'Male',
+                            style: TextStyle(
+                              // fontSize: isWideScreen ? 16 : 14,
+                            ),
+                          ),
+
+                        ],
+                      ),
+
+                      SizedBox(height: screenHeight * 0.02), // Dynamic spacing
+
+                      // Charges Information
+                      Text(
+                        'Total Charges',
+                        style: TextStyle(
+                          fontSize: screenWidth * 0.045, // Dynamic font size
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Container(
+                        padding: EdgeInsets.all(screenWidth * 0.03),
+                        // Dynamic padding
+                        margin: EdgeInsets.symmetric(
+                            vertical: screenHeight * 0.02),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: AppColors.secondaryColor),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildChargesRow(
+                              'Consultation Fees',
+                              '₹${widget.consultationFee?.toStringAsFixed(2) ?? '0.00'}',
+                              screenWidth,
+                            ),
+                            _buildChargesRow(
+                              'Service Charges',
+                              '₹${widget.serviceCharge.toStringAsFixed(2)}',
+                              screenWidth,
+                            ),
+                            Divider(),
+                            _buildChargesRow(
+                              'Pay Now',
+                              '₹${totalCharges.toStringAsFixed(2)}',
+                              screenWidth,
+                              isBold: true,
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: screenHeight * 0.04), // Dynamic spacing
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          // Payment Buttons
-          Container(
-            padding: EdgeInsets.all(screenWidth * 0.04), // Dynamic padding
-            color: Colors.white,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '₹${totalCharges.toStringAsFixed(2)} ',
-                  style: TextStyle(
-                    fontSize: screenWidth * 0.045, // Dynamic font size
-                    fontWeight: FontWeight.bold,
+            // Payment Buttons
+            Container(
+              padding: EdgeInsets.all(screenWidth * 0.04), // Dynamic padding
+              color: Colors.white,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '₹${totalCharges.toStringAsFixed(2)} ',
+                    style: TextStyle(
+                      fontSize: screenWidth * 0.045, // Dynamic font size
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                Row(
-                  children: [
-                    TextButton(
-                      onPressed: () async {
-                        if (widget.patientId != null) {
-                          // Skip patient registration and directly register OPD
-                          await _registerOpd(context, widget.patientId!, widget.unitId!, widget.doctorId!, widget.consultationFee!);
-                        } else {
-                          // Register patient and then OPD
-                          await registerPatient(context);
-                        }
-                      },
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: () async {
+                          if (widget.patientId != null) {
+                            // Skip patient registration and directly register OPD
+                            await _registerOpd(context, widget.patientId!, widget.unitId!, widget.doctorId!, widget.consultationFee!);
+                          } else {
+                            // Register patient and then OPD
+                            await registerPatient(context);
+                          }
+                        },
 
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: screenWidth * 0.02,
-                          vertical: screenHeight * 0.01,
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: screenWidth * 0.02,
+                            vertical: screenHeight * 0.01,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: BorderSide(color: AppColors.secondaryColor),
+                          ),
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          side: BorderSide(color: AppColors.secondaryColor),
-                        ),
-                      ),
-                      child: Text(
-                        'Pay Later',
-                        style: TextStyle(
-                          fontSize: screenWidth * 0.04, // Dynamic font size
-                          color: AppColors.secondaryColor,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: screenWidth * 0.02), // Dynamic spacing
-                    ElevatedButton(
-                      onPressed: () async {
-                        // Handle payment and confirmation
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryColor,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: screenWidth * 0.02,
-                          vertical: screenHeight * 0.01,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        elevation: 5,
-                      ),
-                      child: Text(
-                        'Pay & Confirm',
-                        style: TextStyle(
-                          fontSize: screenWidth * 0.04, // Dynamic font size
-                          color: Colors.white,
+                        child: Text(
+                          'Pay Later',
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.04, // Dynamic font size
+                            color: AppColors.secondaryColor,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      SizedBox(width: screenWidth * 0.02), // Dynamic spacing
+                      ElevatedButton(
+                        onPressed: () async {
+                          // Handle payment and confirmation
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryColor,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: screenWidth * 0.02,
+                            vertical: screenHeight * 0.01,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 5,
+                        ),
+                        child: Text(
+                          'Pay & Confirm',
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.04, // Dynamic font size
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  Widget _buildChargesRow(String label, String amount, double screenWidth,
+      {bool isBold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              fontSize: screenWidth * 0.04, // Dynamic font size
+            ),
+          ),
+          Text(
+            amount,
+            style: TextStyle(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              fontSize: screenWidth * 0.04, // Dynamic font size
             ),
           ),
         ],
       ),
-    ),
     );
   }
-Widget _buildChargesRow(String label, String amount, double screenWidth,
-    {bool isBold = false}) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4.0),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            fontSize: screenWidth * 0.04, // Dynamic font size
-          ),
-        ),
-        Text(
-          amount,
-          style: TextStyle(
-            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            fontSize: screenWidth * 0.04, // Dynamic font size
-          ),
-        ),
-      ],
-    ),
-  );
-}
 }
