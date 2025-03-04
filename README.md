@@ -1,6 +1,6 @@
-# bottom_navigation
+# Rama Hospital
 
-A new Flutter project.
+Rama Hospital Application
 
 ## Getting Started
 
