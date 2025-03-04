@@ -5,8 +5,10 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart'; // For date formatting
+import 'package:intl/intl.dart';
 import 'review.dart';
+import 'app_config.dart';
+import 'dateandtimeslot.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -49,16 +51,19 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
   List<Map<String, dynamic>> _states = [];
   String? _selectedState;
   String? _gender;
-  String? unitId;
-  String? doctorId;
+  int? unitId;
+  int? doctorId;
   String? doctorName;
   double? consultationFee;
   String? patientId;
-  DateTime? _selectedDate;
+  bool _isButtonEnabled = true;
   String? doctorImg;
   String? experience;
-  String? _selectedTimeSlot;
-  String? specializationName; // New field for specialization
+  String? specializationName;
+  final selectedDate = SelectedAppointment().selectedDate;
+  final selectedSlot = SelectedAppointment().selectedSlot;
+
+
 
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
@@ -75,26 +80,36 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
     super.initState();
     _pageController = PageController();
     _fetchStates();
-    _getunitId();
-    _getdoctorId();
-    _getconsultationfee();
+    _getUnitId();
+    _getDoctorId();
+    _getConsultationFee();
     _checkLoginStatus();
-  }
-  Future<void> _getunitId() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    unitId = prefs.getString('unitId') ?? '0';
+    print("Selected Date: $selectedDate");
+    print("Selected Slot: $selectedSlot");
   }
 
-  Future<void> _getdoctorId() async {
+  Future<void> _getUnitId() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    doctorId = prefs.getString('doctorId') ?? '0';
+    setState(() {
+      unitId = prefs.getInt('unitId');
+    });
+  }
+
+  Future<void> _getDoctorId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      doctorId = prefs.getInt('doctorId');
+    });
+  }
+
+  Future<void> _getConsultationFee() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      consultationFee = prefs.getDouble('consultationFee') ?? 50.0;
+    });
   }
 
 
-  Future<void> _getconsultationfee() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    consultationFee = prefs.getDouble('consultationFee') ?? 50.0;
-  }
 
   @override
   void dispose() {
@@ -104,8 +119,7 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
 
   Future<void> _fetchStates() async {
     try {
-      var uri = Uri.parse(
-          'http://192.168.1.106:8081/api/HospitalApp/GetState');
+      var uri = Uri.parse('${AppConfig.apiUrl1}${AppConfig.getStateEndpoint}');
       var response = await http.get(uri);
       if (response.statusCode == 200) {
         List<dynamic> statesData = json.decode(response.body);
@@ -139,292 +153,100 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
         isPatientLoggedIn = true;
       });
       print('Patient already logged in with ID: $patientId');
-      _showDateTimePickerBottomSheet();
+
+    }
+  }
+
+  Future<void> _registerPatient() async {
+    final url = Uri.parse('http://192.168.1.144:8081/api/HospitalApp/PatientRegistrationApp');
+
+    // Disable the button by setting the state
+    setState(() {
+      _isButtonEnabled = false;
+    });
+
+    try {
+      // Preparing request body
+      final requestBody = jsonEncode({
+        "first_name": _firstNameController.text.trim(),
+        "last_name": _lastNameController.text.trim(),
+        "gender": _gender == "Male"
+            ? "M"
+            : _gender == "Female"
+            ? "F"
+            : "O",
+        "age": int.tryParse(_ageController.text.trim()) ?? 0,
+        "phone_no": _phoneNumberController.text.trim(),
+        "father_spouse_name": _guardianNameController.text.trim(),
+        "address": _addressController.text.trim(),
+        "state_id": _selectedState != null ? int.tryParse(_selectedState!.trim()) : null,
+        "AdharNo": _aadhaarNumberController.text.trim(),
+        "Password": _PasswordController.text.trim(),
+      });
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: requestBody,
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+
+        if (responseData.containsKey('message')) {
+          final patientId = responseData['message'];
+          _navigateToReviewScreen(patientId); // Navigate to the next screen
+        } else {
+          _showErrorDialog('Unexpected server response. Please try again.');
+        }
+      } else {
+        _showErrorDialog('Failed to register patient. Status Code: ${response.statusCode}');
+      }
+    } catch (error) {
+      _showErrorDialog('An error occurred while connecting to the server. Please check your connection and try again.\n\nError: $error');
+    } finally {
+      // Re-enable the button regardless of the outcome
+      setState(() {
+        _isButtonEnabled = true;
+      });
     }
   }
 
 
-  Future<void> _showDateTimePickerBottomSheet() async {
-    DateTime now = DateTime.now();
-    DateTime endOfMonth = DateTime(now.year, now.month + 1, 0);
-    List<DateTime> availableDates = [];
 
-    for (DateTime date = now; date.isBefore(endOfMonth.add(Duration(days: 1))); date = date.add(Duration(days: 1))) {
-      availableDates.add(date);
-    }
+  void _navigateToReviewScreen(String patientId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ReviewScreen(
 
-    List<String> morningSlots = [];
-    for (int hour = 10; hour <= 12; hour++) {
-      morningSlots.add('${hour % 12 == 0 ? 12 : hour % 12}:00 AM');
-      morningSlots.add('${hour % 12 == 0 ? 12 : hour % 12}:30 AM');
-    }
-
-    List<String> eveningSlots = [];
-    for (int hour = 14; hour <= 17; hour++) {
-      eveningSlots.add('${hour % 12 == 0 ? 12 : hour % 12}:00 PM');
-      eveningSlots.add('${hour % 12 == 0 ? 12 : hour % 12}:30 PM');
-    }
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+          patientId: patientId,
+          specializationName: specializationName,
+        ),
       ),
-      isScrollControlled: true,
-      isDismissible: true, // Allows closing when clicking outside
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            return GestureDetector(
-              onTap: () {
-                // When the user taps outside the modal, pop the modal and go back
-                Navigator.pop(context);
-              },
-              child: Container(
-                padding: EdgeInsets.all(16.0),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Select Appointment Date and Time',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                      Container(
-                        height: 80,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: availableDates.length,
-                          itemBuilder: (context, index) {
-                            DateTime date = availableDates[index];
-                            bool isSelectedDate = _selectedDate == date;
-                            return GestureDetector(
-                              onTap: () {
-                                setModalState(() {
-                                  _selectedDate = date;
-                                  _selectedTimeSlot = null;
-                                });
-                              },
-                              child: Container(
-                                margin: EdgeInsets.symmetric(horizontal: 8.0),
-                                padding: EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: isSelectedDate ? AppColors.primaryColor : Colors.grey[200],
-                                  borderRadius: BorderRadius.circular(8.0),
-                                  border: isSelectedDate
-                                      ? Border.all(color: Colors.blueAccent, width: 2)
-                                      : null,
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      date.day.toString(),
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
-                                        color: isSelectedDate ? Colors.white : Colors.black,
-                                      ),
-                                    ),
-                                    Text(
-                                      DateFormat('MMM').format(date),
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: isSelectedDate ? Colors.white : Colors.black,
-                                      ),
-                                    ),
-
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        'Morning Slots (10 AM - 1 PM):',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8.0,
-                        runSpacing: 8.0,
-                        children: morningSlots.map((slot) {
-                          bool isSelectedTimeSlot = _selectedTimeSlot == slot && _selectedDate != null;
-                          return GestureDetector(
-                            onTap: () {
-                              setModalState(() {
-                                _selectedTimeSlot = slot;
-                              });
-                            },
-                            child: Container(
-                              padding: EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: isSelectedTimeSlot ? AppColors.primaryColor : Colors.grey[200],
-                                borderRadius: BorderRadius.circular(8.0),
-                                border: isSelectedTimeSlot
-                                    ? Border.all(color: Colors.blueAccent, width: 2)
-                                    : null,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    slot,
-                                    style: TextStyle(
-                                      color: isSelectedTimeSlot ? Colors.white : Colors.black,
-                                    ),
-                                  ),
-
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        'Evening Slots (2 PM - 6 PM):',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8.0,
-                        runSpacing: 8.0,
-                        children: eveningSlots.map((slot) {
-                          bool isSelectedTimeSlot = _selectedTimeSlot == slot && _selectedDate != null;
-                          return GestureDetector(
-                            onTap: () {
-                              setModalState(() {
-                                _selectedTimeSlot = slot;
-                              });
-                            },
-                            child: Container(
-                              padding: EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: isSelectedTimeSlot ? AppColors.primaryColor : Colors.grey[200],
-                                borderRadius: BorderRadius.circular(8.0),
-                                border: isSelectedTimeSlot
-                                    ? Border.all(color: Colors.blueAccent, width: 2)
-                                    : null,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    slot,
-                                    style: TextStyle(
-                                      color: isSelectedTimeSlot ? Colors.white : Colors.black,
-                                    ),
-                                  ),
-
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        'Selected Date and Time:',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 8),
-                      // Display the selected date and time dynamically
-                      Text(
-                        _selectedDate != null && _selectedTimeSlot != null
-                            ? 'Date: ${DateFormat('yyyy-MM-dd').format(_selectedDate!)}\nTime: $_selectedTimeSlot'
-                            : _selectedDate != null
-                            ? 'Date: ${DateFormat('yyyy-MM-dd').format(_selectedDate!)}\nTime: None'
-                            : 'None',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
-                      SizedBox(height: 16),
-                      Center(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            backgroundColor:  AppColors.primaryColor,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10.0),
-                            ),
-                          ),
-                          onPressed: () {
-                            // Check if both date and time are selected
-                            if (_selectedDate != null && _selectedTimeSlot != null) {
-                              Navigator.pop(context); // Close the bottom sheet
-                              _showReviewScreen(); // Show the review screen
-                            } else {
-                              // Display a message if either date or time is not selected
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Please select both a date and a time.',
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          },
-                          child: Text('Confirm'),
-                        ),
-                      ),
-
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
+    );
+  }
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Error'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('OK'),
+            ),
+          ],
         );
       },
     );
   }
 
-
-  // Create an instance of the ReviewScreen with the required parameters
-  void _showReviewScreen() async {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ReviewScreen(
-          firstName: _firstNameController.text,
-          lastName: _lastNameController.text,
-          gender: _gender,
-          state: _selectedState,
-          age: _ageController.text,
-          phoneNumber: _phoneNumberController.text,
-          selectedDate: _selectedDate,
-          selectedTimeSlot: _selectedTimeSlot,
-          guardian: _guardianNameController.text,
-          aadhaarNumber: _aadhaarNumberController.text,
-          address: _addressController.text,
-          password: _PasswordController.text,
-          unitId: unitId,
-          doctorId: doctorId,
-          experience: experience,
-          doctorImg: doctorImg,
-          doctorName: doctorName,
-          consultationFee: consultationFee,
-          patientId: patientId,
-          specializationName: specializationName, // Pass specializationName
-        ),
-      ),
-    );
-  }
-
-
   @override
   Widget build(BuildContext context) {
-    // If the patient is already logged in, show a loader while waiting for the date/time picker
+
     if (isPatientLoggedIn) {
       return Scaffold(
         body: Center(
@@ -701,59 +523,75 @@ class _PatientRegistrationFormState extends State<PatientRegistrationForm> {
     return null;
     },
     ),
-              // Add other form fields like age, gender, etc.
-              SizedBox(height: 20),
-      Container(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: () {
-            if (_formKey.currentState!.validate()) {
-              _showDateTimePickerBottomSheet();
-            }
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryColor,
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
+      SizedBox(height: 16.0),
+      ElevatedButton(
+        onPressed: _isButtonEnabled
+            ? () {
+          if (_formKey.currentState!.validate()) {
+            setState(() {
+              _isButtonEnabled = false; // Disable button
+            });
+            _registerPatient();
+          }
+        }
+            : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.teal,
+          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
           ),
+        ),
+        child: Container(
+          width: double.infinity,
+          alignment: Alignment.center,
           child: Text(
             'Submit',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.white,)
-
-      ),
-        ),)],
+              color: Colors.white,
+            ),
           ),
+        ),
+      ),
+
+    ],
+    ),
         ),
       ),
     ));
   }
 }
+
 class QRCodeScreen extends StatelessWidget {
   final String message;
+  DateTime? selectedDate = SelectedAppointment().selectedDate;
+  String? selectedSlot = SelectedAppointment().selectedSlot;
 
   QRCodeScreen({required this.message});
 
   @override
   Widget build(BuildContext context) {
-    // Create a JSON object with the required message format
+    // Format the date to `YYYY-MM-DD`
+    String? formattedDate = selectedDate != null
+        ? DateFormat('yyyy-MM-dd').format(selectedDate!)
+        : null;
+
     String jsonPayload = json.encode({
-      "message": message, // Encode the message from the API response (hidden patient ID)
+      "Message": message,
+      "Date": formattedDate,
+      "Time": selectedSlot,
     });
 
     return WillPopScope(
       onWillPop: () async {
-        // Navigate to homepage (RegistrationNavigation) when back is pressed
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => RegistrationNavigation()),
-              (Route<dynamic> route) => false, // Removes all previous routes
+              (Route<dynamic> route) => false,
         );
-        return false; // Prevent default back action
+        return false;
       },
       child: Scaffold(
         appBar: AppBar(
@@ -791,7 +629,7 @@ class QRCodeScreen extends StatelessWidget {
               ),
               SizedBox(height: 20),
               QrImageView(
-                data: jsonPayload,  // Data to be encoded in the QR code (hidden patient ID)
+                data: jsonPayload,
                 version: QrVersions.auto,
                 size: 200.0,
               ),

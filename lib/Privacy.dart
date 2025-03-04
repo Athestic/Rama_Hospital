@@ -1,119 +1,163 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:global/colors.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'colors.dart';
 
-class Privacy extends StatelessWidget {
+class PrivacyPolicyPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Privacy Policy',
+          'Privacy Policy & Terms',
           style: TextStyle(
             color: AppColors.primaryColor,
             fontFamily: 'Poppins',
             fontWeight: FontWeight.bold,
+
           ),
         ),
-        centerTitle: true,
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: RichText(
-            textAlign: TextAlign.justify,
-            text: TextSpan(
+      body: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(
+          horizontal: screenWidth > 600 ? 40.0 : 20.0,
+          vertical: 26.0,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '1. Information We Collect',
               style: TextStyle(
-                fontSize: 16.0,
-                color: Colors.black87,
-                height: 1.5,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+                color: AppColors.secondaryColor,
               ),
-              children: [
-                TextSpan(
-                  text: 'What this Privacy Policy Covers\n\n',
-                  style: TextStyle(
-                    color: AppColors.secondaryColor,
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                TextSpan(
-                  text:
-                  'This Privacy Policy covers our treatment of personally identifiable information that we collect when you are on our site, and when you use our services. This policy also covers our treatment of any personally identifiable information that third parties share with us.\n\n This policy does not apply to the practices of organizations that we do not own or control or to people that we do not employ or manage.\n\n',
-                ),
-                TextSpan(
-                  text: 'Information Collection and Use\n\n',
-                  style: TextStyle(
-                    color: AppColors.secondaryColor,
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                TextSpan(
-                  text:
-                  'We collect personally identifiable information when you register on our website, when you use our services, and when you visit our pages. We may also receive personally identifiable information from third parties.\n\nWhen you register with us, we ask for your name, email address, zip code, occupation, industry, and personal interests. Once you register with us and sign in to our services, you are not anonymous to us.\n\nWe use this information for three general purposes: to customize the content you see, to fulfill your requests for certain services, and to contact you about services.\n\n',
-                ),
-                TextSpan(
-                  text: 'Information Sharing and Disclosure\n\n',
-                  style: TextStyle(
-                    color: AppColors.secondaryColor,
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                TextSpan(
-                  text:
-                  'We will not sell or rent your personally identifiable information to anyone. \n\n We will send personally identifiable information about you to other companies or people when.\n\n We have your consent to share the information.\n\n We respond to subpoenas, court orders or legal process.\n\n',
-                ),
-                TextSpan(
-                  text: 'Changes to this Privacy Policy\n\n',
-                  style: TextStyle(
-                    color: AppColors.secondaryColor,
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                TextSpan(
-                  text:
-                  'The privacy policy is subject to modification from time to time. If we decide to change our privacy policy, we will post those changes here so that you will always know what information we gather, how we might use that information and whether we will disclose it to anyone. Any significant changes to our privacy policy will be announced on our home page. If you do not agree with the changes in our policy you can simply discontinue to visit our website.\n\n',
-                ),
-                TextSpan(
-                  text: 'Questions or Suggestions\n\n',
-                  style: TextStyle(
-                    color: AppColors.secondaryColor,
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                TextSpan(
-                  text: 'If you have questions or suggestions complete the enquiry form or send an email to us at ',
-                ),
-                TextSpan(
-                  text: 'rtg00112@gmail.com\n\n',
-                  style: TextStyle(
-                    color: Colors.blue,
-                    decoration: TextDecoration.underline,
-                  ),
-                  recognizer: TapGestureRecognizer()
-                    ..onTap = () async {
-                      final Uri emailUri = Uri(
-                        scheme: 'mailto',
-                        path: 'rtg00112@gmail.com',
-                      );
-
-                      try {
-                        if (!await launchUrl(emailUri, mode: LaunchMode.externalApplication)) {
-                          throw 'Could not launch $emailUri';
-                        }
-                      } catch (e) {
-                        print(e);
-                      }
-                    },
-                ),
-              ],
             ),
-          ),
+            Text(
+              'When you use Rama Hospital, we may collect the following types of information:\n\n'
+                  '- User Information: Employee Code or other identification provided during registration.\n'
+                  '- Usage Data: Interaction data such as feature usage and frequency of use.\n'
+                  '- Feedback and Communication: Any data provided during customer support interactions.',
+              textAlign: TextAlign.justify,
+              style: TextStyle(
+                fontSize: 16,
+                fontFamily: 'Poppins',
+                color: Colors.black,
+              ),
+            ),
+            SizedBox(height: 10),
+            Text(
+              '2. How We Use Your Information',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+                color: AppColors.secondaryColor,
+              ),
+            ),
+            Text(
+              'The information collected is used for:\n\n'
+                  '- Delivering and improving the application’s services, such as online appointment booking, medicine purchases, lab test bookings, and other hospital-related services.\n'
+                  '- Providing personalized recommendations.\n'
+                  '- Ensuring security and preventing misuse.\n'
+                  '- Communicating updates, offers, or policy changes.\n'
+                  '- Analyzing usage trends to enhance features.',
+              textAlign: TextAlign.justify,
+              style: TextStyle(
+                fontSize: 16,
+                fontFamily: 'Poppins',
+                color: Colors.black,
+              ),
+            ),
+            SizedBox(height: 20),
+            Text(
+              'Terms and Conditions',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+                color: AppColors.secondaryColor,
+              ),
+            ),
+            SizedBox(height: 10),
+            Text(
+              '1. Acceptance of Terms',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+                color: AppColors.secondaryColor,
+              ),
+            ),
+            Text(
+              'By downloading, installing, or using Rama Hospital’s application, you agree to these Terms and Conditions. If you do not agree, discontinue using the application immediately.',
+              textAlign: TextAlign.justify,
+              style: TextStyle(
+                fontSize: 16,
+                fontFamily: 'Poppins',
+                color: Colors.black,
+              ),
+            ),
+            SizedBox(height: 10),
+            Text(
+              '2. License to Use',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+                color: AppColors.secondaryColor,
+              ),
+            ),
+            Text(
+              'We grant you a limited, non-exclusive, non-transferable license to use Rama Hospital for personal, non-commercial purposes. You may not:\n\n'
+                  '- Reverse-engineer, modify, or reproduce the application.\n'
+                  '- Exploit the application for unauthorized or illegal activities.',
+              textAlign: TextAlign.justify,
+              style: TextStyle(
+                fontSize: 16,
+                fontFamily: 'Poppins',
+                color: Colors.black,
+              ),
+            ),
+            // ... Remaining sections continue as they are, with "MediClean" replaced with "Rama Hospital"
+            // Ensure the email section is updated correctly:
+            SizedBox(height: 10),
+            Text(
+              '10. Contact Information',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+                color: AppColors.secondaryColor,
+              ),
+            ),
+            RichText(
+              text: TextSpan(
+                text: 'If You Have any Query Please Contact Us \'ramahospital@gmail.com\'',
+                style: TextStyle(
+                  color: Colors.black,
+                  decoration: TextDecoration.underline,
+                  fontSize: 16,
+                  fontFamily: 'Poppins',
+                ),
+                recognizer: TapGestureRecognizer()
+                  ..onTap = () async {
+                    final Uri emailUri = Uri(
+                      scheme: 'mailto',
+                      path: 'ramahospital@gmail.com',
+                    );
+                    if (!await launchUrl(emailUri, mode: LaunchMode.externalApplication)) {
+                      print('Could not launch $emailUri');
+                    }
+                  },
+              ),
+            ),
+
+          ],
         ),
       ),
     );

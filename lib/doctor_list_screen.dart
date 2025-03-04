@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:global/colors.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'onlineappointment.dart';
 import 'inpersonvisit.dart';
+import 'app_config.dart';
 
 class Doctor {
   final String doctorName;
@@ -47,9 +47,33 @@ class Doctor {
   }
 }
 
+class GlobalDoctorData {
+  static final GlobalDoctorData _instance = GlobalDoctorData._internal();
+  GlobalDoctorData._internal();
+  factory GlobalDoctorData() => _instance;
+
+  String? doctorName;
+  String? doctorImg;
+  String? experience;
+  int? unitId;
+  int? doctorId;
+
+  double? consultationFee;
+
+  void setDoctorDetails(Doctor doctor) {
+    doctorName = doctor.doctorName;
+    doctorImg = doctor.doctorImg;
+    experience = doctor.experience;
+    unitId = doctor.unitId;
+    doctorId = doctor.doctorId;
+    consultationFee = doctor.consultationFee;
+  }
+}
+
 class DoctorsScreen extends StatelessWidget {
   final int specializationId;
   final String specializationName;
+
   final Future<List<Doctor>> fetchDoctors;
 
   DoctorsScreen({
@@ -58,12 +82,8 @@ class DoctorsScreen extends StatelessWidget {
     required this.fetchDoctors,
   });
 
-  Future<void> storeDoctorDetails(Doctor doctor, String specializationName) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('doctorName', doctor.doctorName);
-    await prefs.setString('doctorImg', doctor.doctorImg ?? '');
-    await prefs.setString('experience', doctor.experience ?? '0');
-    await prefs.setString('specializationName', specializationName);
+  void storeDoctorDetailsGlobally(Doctor doctor) {
+    GlobalDoctorData().setDoctorDetails(doctor);
   }
 
   @override
@@ -71,9 +91,9 @@ class DoctorsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          specializationName,
+         'Choose Your Doctor',
           style: TextStyle(
-            color: Colors.teal,
+            color: AppColors.primaryColor,
             fontFamily: 'Poppins',
             fontWeight: FontWeight.bold,
           ),
@@ -114,183 +134,245 @@ class DoctorsScreen extends StatelessWidget {
                     itemBuilder: (context, index) {
                       Doctor doctor = snapshot.data![index];
 
-                      // Display image: either base64 or from a URL
                       Widget doctorImage;
                       if (doctor.doctorImg != null) {
                         if (doctor.doctorImg!.startsWith('http')) {
                           doctorImage = Image.network(
                             doctor.doctorImg!,
-                            width: 80,
-                            height: 80,
+                            width: 120,
+                            height: 140,
                             fit: BoxFit.cover,
                           );
                         } else {
                           doctorImage = Image.memory(
                             base64Decode(doctor.doctorImg!),
-                            width: 80,
-                            height: 80,
+                            width: 120,
+                            height: 140,
                             fit: BoxFit.cover,
                           );
                         }
                       } else {
                         doctorImage = Icon(Icons.person, size: 80);
                       }
+
                       return Card(
-                        margin: EdgeInsets.all(8),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(15),
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.all(12.0),
+                          padding: const EdgeInsets.all(15.0),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
+
                                         Expanded(
-                                          child: Text(
-                                            doctor.doctorName,
-                                            style: TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.bold,
+                                          flex: 3,
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+
+                                                'Dr. ${doctor.doctorName} ',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontFamily: 'Poppins',
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              SizedBox(height: 5),
+                                              Text(
+                                                specializationName,
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.grey,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              SizedBox(height: 5),
+                                              // Experience
+                                              Container(
+                                                decoration: BoxDecoration(
+                                                  border: Border.all(
+                                                    color: Colors.green,
+                                                    width: 1.0,
+                                                  ),
+                                                  borderRadius: BorderRadius.circular(10),
+                                                ),
+                                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                child: Text(
+                                                  '${doctor.experience!} yrs',
+                                                  style: TextStyle(
+                                                    color: Colors.green,
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+
+                                        Padding(
+                                          padding: const EdgeInsets.only(right: 15.0),
+                                          child: Expanded(
+                                            flex: 2,
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.end,
+                                              children: [
+                                                Row(
+                                                  mainAxisAlignment: MainAxisAlignment.end,
+                                                  children: [
+                                                    Text(
+                                                      '4/5',
+                                                      style: TextStyle(
+                                                        fontSize: 14,
+                                                        fontWeight: FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                    SizedBox(width: 4),
+                                                    Icon(
+                                                      Icons.star,
+                                                      color: Colors.amber,
+                                                      size: 16,
+                                                    ),
+                                                  ],
+                                                ),
+                                                SizedBox(height: 10),
+                                                RichText(
+                                                  textAlign: TextAlign.right,
+                                                  text: TextSpan(
+                                                    children: [
+                                                      TextSpan(
+                                                        text: 'Availability\n',
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                          color: Colors.black,
+                                                          fontWeight: FontWeight.w500,
+                                                        ),
+                                                      ),
+                                                      TextSpan(
+                                                        text: 'Mon, Tue, Fri',
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                          color: Colors.blue,
+                                                          fontWeight: FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
                                         ),
                                       ],
                                     ),
-                                    SizedBox(height: 5),
-                                    Text(
-                                      'ConsultationFee: ${doctor.consultationFee}',
-                                      style: TextStyle(
-                                        color: Colors.blue,
-                                        fontFamily: 'Poppins',
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    SizedBox(height: 5),
-                                    Text(
-                                      'Qualifications: ${doctor.qualification}',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                    SizedBox(height: 5),
-                                    Text(
-                                      'Experience: ${doctor.experience}',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                    SizedBox(height: 5),
-                                    Text(
-                                      'Language: English, Hindi',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        fontFamily: 'Poppins',
-                                      ),
-                                    ),
                                     SizedBox(height: 10),
+
                                     Row(
                                       children: [
-                                        SizedBox(
-                                          width: 100,
-                                          height: 35,
+                                        Padding(
+                                          padding: const EdgeInsets.only(right: 4.0),
                                           child: ElevatedButton(
-                                            onPressed: () async {
-                                              await storeDoctorDetails(
-                                                  doctor, specializationName);
+                                            onPressed: () {
+                                              storeDoctorDetailsGlobally(doctor);
                                               Navigator.push(
                                                 context,
                                                 MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      DoctorDetailScreeninpersonvisit(
-                                                          doctor: doctor),
+                                                  builder: (context) => DoctorDetailScreeninpersonvisit(
+                                                    doctor: doctor
+                                                  ),
                                                 ),
                                               );
                                             },
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor:
-                                              AppColors.primaryColor,
-                                              padding: EdgeInsets.symmetric(
-                                                  horizontal: 10, vertical: 10),
+                                              backgroundColor: AppColors.primaryColor,
                                               shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                BorderRadius.circular(7),
+                                                borderRadius: BorderRadius.circular(5),
                                               ),
+                                              padding: EdgeInsets.symmetric(horizontal: 9, vertical: 2),
                                             ),
                                             child: Text(
                                               'Hospital Visit',
                                               style: TextStyle(
+                                                fontSize: 12,
                                                 color: Colors.white,
-                                                fontSize: 10,
-                                                fontFamily: 'Poppins',
+                                                fontWeight: FontWeight.bold,
                                               ),
                                             ),
                                           ),
                                         ),
-                                        SizedBox(width: 5),
-                                        SizedBox(
-                                          width: 100,
-                                          height: 35,
+                                        Padding(
+                                          padding: const EdgeInsets.only(left: 4.0),
                                           child: ElevatedButton(
                                             onPressed: () {
+                                              storeDoctorDetailsGlobally(doctor);
                                               Navigator.push(
                                                 context,
                                                 MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      DoctorDetailScreen(
-                                                          doctor: doctor),
+                                                  builder: (context) => DoctorDetailScreen(doctor: doctor),
                                                 ),
                                               );
                                             },
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor:
-                                              AppColors.secondaryColor,
-                                              padding: EdgeInsets.symmetric(
-                                                  horizontal: 10, vertical: 10),
+                                              backgroundColor: AppColors.secondaryColor,
                                               shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                BorderRadius.circular(7),
+                                                borderRadius: BorderRadius.circular(5),
                                               ),
+                                              padding: EdgeInsets.symmetric(horizontal: 9, vertical: 2),
                                             ),
                                             child: Text(
                                               'Video Consult',
                                               style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
                                                 color: Colors.white,
-                                                fontSize: 10,
-                                                fontFamily: 'Poppins',
                                               ),
                                             ),
                                           ),
                                         ),
                                       ],
                                     ),
+
+
+
                                   ],
                                 ),
                               ),
-                              SizedBox(width: 5),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: SizedBox(
-                                  width: 100,
-                                  height: 127,
-                                  child: doctorImage,
+                              Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color:AppColors.secondaryColor,
+                                    width: 2.0,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: SizedBox(
+                                    width: 120,
+                                    height: 125,
+                                    child: doctorImage,
+                                  ),
                                 ),
                               ),
+
                             ],
                           ),
                         ),
                       );
+
                     },
                   );
                 }
@@ -302,11 +384,12 @@ class DoctorsScreen extends StatelessWidget {
     );
   }
 }
-
-// Method to fetch doctors by specialization
 Future<List<Doctor>> fetchDoctorsBySpecialization(int specializationId) async {
-  final response = await http.get(Uri.parse(
-      'http://192.168.1.106:8081/api/HospitalApp/GetUnitDetails?doctorId=7&specId=$specializationId'));
+  final uri = Uri.parse(
+    '${AppConfig.apiUrl1}${AppConfig.getUnitDetailsEndpoint}?specId=$specializationId',
+  );
+
+  final response = await http.get(uri);
 
   if (response.statusCode == 200) {
     List<dynamic> jsonData = json.decode(response.body);

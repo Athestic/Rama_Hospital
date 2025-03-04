@@ -5,6 +5,7 @@ import 'Reports.dart'; // Make sure to have this screen to display the report
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'colors.dart';
+import 'app_config.dart';
 
 class HealthRecordsScreen extends StatefulWidget {
   final String patientId;
@@ -43,7 +44,7 @@ class _HealthRecordsScreenState extends State<HealthRecordsScreen> {
   Future<void> fetchIPDDetails() async {
     try {
       final response = await http.get(Uri.parse(
-          'http://192.168.1.106:8081/api/HospitalApp/GetIpidWithImeage?patientId=${widget.patientId}'));
+          '${AppConfig.apiUrl1}${AppConfig.getIpidWithImageEndpoint}?patientId=${widget.patientId}'));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -73,8 +74,7 @@ class _HealthRecordsScreenState extends State<HealthRecordsScreen> {
   Future<void> fetchOPDDetails() async {
     try {
       final response = await http.get(Uri.parse(
-          'http://192.168.1.106:8081/api/HospitalApp/GetOpdByPatientId?PatientId=${widget.patientId}'
-      ));
+          '${AppConfig.apiUrl1}${AppConfig.getOpdByPatientIdEndpoint}?PatientId=${widget.patientId}'));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
@@ -103,7 +103,7 @@ class _HealthRecordsScreenState extends State<HealthRecordsScreen> {
   Future<void> fetchPatientReport(String ipid) async {
     try {
       final response = await http.get(Uri.parse(
-          'http://192.168.1.106:8081/api/HospitalApp/GetPatientReportByIPID?IPID=$ipid'));
+          '${AppConfig.apiUrl1}${AppConfig.getPatientReportByIPIDEndpoint}?IPID=$ipid'));
 
       if (response.statusCode == 200) {
         final List<dynamic> reportData = jsonDecode(response.body);
@@ -129,7 +129,7 @@ class _HealthRecordsScreenState extends State<HealthRecordsScreen> {
   Future<void> fetchPatientOPDReport(String opdid) async {
     try {
       final response = await http.get(Uri.parse(
-          'http://192.168.1.106:8081/api/HospitalApp/GetPatientReportByOPD?OPDID=$opdid'));
+          '${AppConfig.apiUrl1}${AppConfig.getPatientReportByOPDEndpoint}?OPDID=$opdid'));
 
       if (response.statusCode == 200) {
         final List<dynamic> reportData = jsonDecode(response.body);
@@ -151,6 +151,7 @@ class _HealthRecordsScreenState extends State<HealthRecordsScreen> {
       print('Error occurred: $error');
     }
   }
+
 
   String formatDate(String dateTime) {
     if (dateTime.isEmpty) return 'N/A';

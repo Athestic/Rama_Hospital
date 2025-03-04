@@ -3,6 +3,7 @@ import 'colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http; // Make sure to import http package
 import 'dart:convert'; // For jsonEncode and jsonDecode
+import 'app_config.dart';
 
 class FeedbackScreen extends StatefulWidget {
   @override
@@ -43,7 +44,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
   Future<void> _fetchFeedback() async {
     final String apiUrl =
-        'http://192.168.1.106:8081/api/HospitalApp/GetHospitalAppFeedback?PatientID=$patientId';
+        'http://192.168.1.144:8081/api/HospitalApp/GetHospitalAppFeedback?PatientID=$patientId';
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -91,8 +92,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     }
 
     // Construct the API URL
-    final String apiUrl =
-        'http://192.168.1.106:8081/api/HospitalApp/HospitalAppFeedback?PatientID=$patientId&Feedback=$_feedback';
+    final String apiUrl = '${AppConfig.apiUrl1}${AppConfig.patientFeedbackEndpoint}?PatientID=$patientId&Feedback=$_feedback';
 
     try {
       // Send the POST request
@@ -181,7 +181,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           },
         ),
       ),
-      body: SingleChildScrollView( // Make the entire screen scrollable
+      body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(

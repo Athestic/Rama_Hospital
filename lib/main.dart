@@ -4,7 +4,6 @@ import 'dart:async';
 import 'colors.dart';
 import 'package:sizer/sizer.dart';
 
-
 void main() {
   runApp(MyApp());
 }
@@ -62,6 +61,8 @@ class _SliderSplashScreenState extends State<SliderSplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+
     return WillPopScope(
       onWillPop: () async => _splashSeen,
       child: Scaffold(
@@ -81,8 +82,8 @@ class _SliderSplashScreenState extends State<SliderSplashScreen> {
             ),
             if (_currentPage != 0)
               Positioned(
-                bottom: 2.h,
-                left: 4.w,
+                bottom: isLandscape ? 6.h : 2.h,
+                left: isLandscape ? 5.w : 4.w,
                 child: Row(
                   children: List.generate(_pages.length - 1, (index) {
                     return AnimatedContainer(
@@ -144,22 +145,24 @@ class SplashPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+
     return Container(
       color: Colors.white,
-      padding: EdgeInsets.symmetric(horizontal: 5.w),
+      padding: EdgeInsets.symmetric(horizontal: isLandscape ? 10.w : 5.w),
       child: Center(
         child: Column(
           mainAxisAlignment: isLandscape ? MainAxisAlignment.start : MainAxisAlignment.center,
           children: [
+            SizedBox(height: isLandscape ? 5.h : 2.h), // Adjusted top padding for landscape
             Image.asset(
               imagePath,
-              width: isLandscape ? 50.w : 70.w,
-              height: isLandscape ? 45.h : 45.h,
+              width: isLandscape ? 40.w : 70.w,
+              height: isLandscape ? 30.h : 45.h,
             ),
             if (!isFirstPage)
               if (isCustomTitle)
                 Padding(
-                  padding: EdgeInsets.only(top: 2.h),
+                  padding: EdgeInsets.only(top: isLandscape ? 3.h : 2.h),
                   child: RichText(
                     textAlign: TextAlign.center,
                     text: TextSpan(
@@ -173,7 +176,7 @@ class SplashPage extends StatelessWidget {
                         return TextSpan(
                           text: word + ' ',
                           style: TextStyle(
-                            fontSize: isLandscape ? 4.w : 6.w,
+                            fontSize: isLandscape ? 3.5.w : 6.w,
                             fontWeight: FontWeight.bold,
                             color: color,
                             fontFamily: 'Poppins',
@@ -183,6 +186,8 @@ class SplashPage extends StatelessWidget {
                     ),
                   ),
                 ),
+            if (!isFirstPage)
+              SizedBox(height: isLandscape ? 4.h : 2.h),
           ],
         ),
       ),

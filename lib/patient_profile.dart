@@ -87,7 +87,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
 
     var request = http.MultipartRequest(
       'POST',
-      Uri.parse('http://192.168.1.106:8081/api/HospitalApp/SaveOrUpdatePatientImage?uhid=${widget.patientId}'),
+      Uri.parse('${AppConfig.apiUrl1}${AppConfig.saveOrUpdatePatientImageEndpoint}?uhid=${widget.patientId}'),
     );
 
     try {
@@ -104,7 +104,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
       var response = await request.send();
 
       if (response.statusCode == 200) {
-        _showSuccessDialog('Profile updated successfully.');
+        // _showSuccessDialog('Profile updated successfully.');
       } else {
         // Displaying server's error message for better diagnosis
         String errorResponse = await response.stream.bytesToString();
@@ -115,25 +115,25 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
     }
   }
 
-  void _showSuccessDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Success'),
-          content: Text(message),
-          actions: <Widget>[
-            TextButton(
-              child: Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
+  // void _showSuccessDialog(String message) {
+  //   showDialog(
+  //     context: context,
+  //     builder: (BuildContext context) {
+  //       return AlertDialog(
+  //         title: Text('Success'),
+  //         content: Text(message),
+  //         actions: <Widget>[
+  //           TextButton(
+  //             child: Text('OK'),
+  //             onPressed: () {
+  //               Navigator.of(context).pop();
+  //             },
+  //           ),
+  //         ],
+  //       );
+  //     },
+  //   );
+  // }
 
   void _showFailureDialog(String message) {
     showDialog(
@@ -201,7 +201,42 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
       },
     );
   }
-
+  void _viewProfilePicture(Patient patient) {
+    showDialog(
+      context: context,
+      barrierDismissible: true, // Allows closing the dialog by tapping outside
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          child: AspectRatio(
+            aspectRatio: 1, // Adjusts height to maintain a square ratio
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: _image != null
+                  ? Image.file(
+                _image!,
+                fit: BoxFit.cover,
+                width: double.infinity,
+              )
+                  : patient.imageUrl.isNotEmpty
+                  ? Image.memory(
+                base64Decode(patient.imageUrl),
+                fit: BoxFit.cover,
+                width: double.infinity,
+              )
+                  : Center(
+                child: Icon(
+                  Icons.person,
+                  size: 100,
+                  color: Colors.grey,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -250,32 +285,36 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                       // Profile Image with Change Picture Button and Edit Icon
                       Stack(
                         children: [
-                          CircleAvatar(
-                            radius: 50,
-                            backgroundColor: Colors.teal,
-                            backgroundImage: _image != null
-                                ? FileImage(_image!)
-                                : patient.imageUrl.isNotEmpty
-                                ? MemoryImage(base64Decode(patient.imageUrl)) // Decode base64 image
-                                : null,
-                            child: _image == null && patient.imageUrl.isEmpty
-                                ? Text(
-                              patient.firstName.isNotEmpty
-                                  ? patient.firstName[0].toUpperCase()
-                                  : '?',
-                              style: TextStyle(fontSize: 50, color: Colors.white),
-                            )
-                                : null,
+                          GestureDetector(
+                            onTap: () => _viewProfilePicture(patient), // Pass patient object
+                            child: CircleAvatar(
+                              radius: 50,
+                              backgroundColor: Colors.teal,
+                              backgroundImage: _image != null
+                                  ? FileImage(_image!)
+                                  : patient.imageUrl.isNotEmpty
+                                  ? MemoryImage(base64Decode(patient.imageUrl)) // Decode base64 image
+                                  : null,
+                              child: _image == null && patient.imageUrl.isEmpty
+                                  ? Text(
+                                patient.firstName.isNotEmpty
+                                    ? patient.firstName[0].toUpperCase()
+                                    : '?',
+                                style: TextStyle(fontSize: 50, color: Colors.white),
+                              )
+                                  : null,
+                            ),
                           ),
                         ],
                       ),
+
+
                       SizedBox(height: 10),
                       Text(
                         "Hello, ${patient.firstName}",
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       SizedBox(height: 10),
-
                       ElevatedButton(
                         onPressed: _showImageSourceDialog,
                         style: ElevatedButton.styleFrom(
@@ -288,8 +327,6 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                         ),
                       ),
                       SizedBox(height: 20),
-
-                      // User Details
                       Card(
                         color: Colors.grey[100], // Light background for profile details
                         shape: RoundedRectangleBorder(
@@ -301,18 +338,19 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildDetailRow("Name", patient.firstName),
+                              _buildDetailRow("Name", "${patient.firstName} ${patient.lastname}"),
                               _buildDetailRow("Guardian Name", patient.fatherSpouseName),
                               _buildDetailRow("Patient Id", patient.patientId),
                               _buildDetailRow("Mobile No", patient.phoneNo),
                               _buildDetailRow("Aadhar No", patient.adharNo),
-                              _buildDetailRow("DOB", patient.dob),
-                              _buildDetailRow("Gender", patient.gender),
+
+                              _buildDetailRow("Gender", patient.gender == "M" ? "Male" : patient.gender == "F" ? "Female" : "Other"),
                             ],
                           ),
                         ),
+
                       ),
-                      SizedBox(height: 100), // Extra space to avoid content overlap
+                      SizedBox(height: 100),
                     ],
                   ),
                 ),
@@ -353,6 +391,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
 class Patient {
   final String patientId;
   final String firstName;
+  final String lastname;
   final String gender;
   final String dob;
   final String phoneNo;
@@ -363,6 +402,7 @@ class Patient {
   Patient({
     required this.patientId,
     required this.firstName,
+    required this.lastname,
     required this.gender,
     required this.dob,
     required this.phoneNo,
@@ -375,6 +415,7 @@ class Patient {
     return Patient(
       patientId: json['patient_id'] ?? '',
       firstName: json['first_name'] ?? '',
+      lastname: json['last_name'] ?? '',
       gender: json['gender'] ?? '',
       dob: json['dob'] ?? '',
       phoneNo: json['phone_no'] ?? '',

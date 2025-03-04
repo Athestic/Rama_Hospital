@@ -4,6 +4,7 @@ import 'package:global/laborderlist.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'app_config.dart';
 
 class LabTestBooking extends StatefulWidget {
   @override
@@ -36,7 +37,7 @@ class _LabTestBookingState extends State<LabTestBooking> {
   Future<void> fetchServices(String query) async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.1.106:8081/api/Pharma/GetServiceInvestigation'),
+        Uri.parse('${AppConfig.apiUrl1}${AppConfig.getServiceInvestigationEndpoint}'),
       );
 
       if (response.statusCode == 200) {
@@ -77,7 +78,7 @@ class _LabTestBookingState extends State<LabTestBooking> {
   Future<void> fetchDoctors() async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.1.106:8081/api/HospitalApp/GetDoctorData'),
+        Uri.parse('${AppConfig.apiUrl1}${AppConfig.getDoctorDataEndpoint}'),  // Use API URL from AppConfig
       );
       if (response.statusCode == 200) {
         List<dynamic> data = jsonDecode(response.body);
@@ -177,7 +178,7 @@ class _LabTestBookingState extends State<LabTestBooking> {
 
 
   Future<void> postSelectedServices() async {
-    final url = 'http://192.168.1.106:8081/api/Pharma/AddInvestigation';
+    final url = '${AppConfig.apiUrl1}${AppConfig.addInvestigationEndpoint}';
     Map<String, dynamic> payload = generatePayload();
 
     print('Payload to be sent:');
@@ -427,13 +428,12 @@ class _LabTestBookingState extends State<LabTestBooking> {
               SizedBox(height: 16),
 
               // Selected Services Container with Wrap
-              // Selected Services Container with Wrap
               selectedServices.isNotEmpty
-                  ? SingleChildScrollView( // Allows scrolling if content overflows
+                  ? SingleChildScrollView(
                 child: Container(
                   padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100, // Match the medicines' background color
+                    color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
@@ -460,8 +460,7 @@ class _LabTestBookingState extends State<LabTestBooking> {
                       SizedBox(height: 8),
                       Text(
                         'Selected Services:',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       SizedBox(height: 8),
                       Wrap(
@@ -469,7 +468,8 @@ class _LabTestBookingState extends State<LabTestBooking> {
                         runSpacing: 4.0, // Space between rows
                         children: selectedServices.map((service) {
                           return Container(
-                            margin: EdgeInsets.only(bottom: 8), // Space between chips
+                            width: MediaQuery.of(context).size.width * 0.85, // Adjust width based on screen size
+                            margin: EdgeInsets.only(bottom: 8),
                             padding: EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: Colors.white,
@@ -477,25 +477,24 @@ class _LabTestBookingState extends State<LabTestBooking> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                RichText(
-                                  text: TextSpan(
-                                    children: [
-                                      TextSpan(
-                                        text: service['serviceName'],
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black,
+                                Expanded(
+                                  child: RichText(
+                                    text: TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text: service['serviceName'],
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black,
+                                          ),
                                         ),
-                                      ),
-                                      TextSpan(
-                                        text: ' - ₹${service['serviceUnitPrice']}',
-                                        style: TextStyle(
-                                          color: Colors.grey,
+                                        TextSpan(
+                                          text: ' - ₹${service['serviceUnitPrice']}',
+                                          style: TextStyle(color: Colors.grey),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                                 IconButton(
@@ -510,7 +509,6 @@ class _LabTestBookingState extends State<LabTestBooking> {
                         }).toList(),
                       ),
                       SizedBox(height: 16),
-                      // Display the total price of selected services
                       Text(
                         'Total Price: ₹${calculateTotalPrice()}',
                         style: TextStyle(
@@ -523,7 +521,7 @@ class _LabTestBookingState extends State<LabTestBooking> {
                   ),
                 ),
               )
-                  : SizedBox.shrink(), // If no selected services
+                  : SizedBox.shrink(),
 
 
               // Book Lab Test Button

@@ -3,6 +3,7 @@ import 'package:global/colors.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'app_config.dart';
 
 class BookingAppointmentPage extends StatefulWidget {
   final String patientId;
@@ -27,10 +28,11 @@ class _BookingAppointmentPageState extends State<BookingAppointmentPage> {
 
   Future<void> _fetchAppointments() async {
     try {
-      final response = await http.get(
-        Uri.parse(
-            'http://192.168.1.106:8081/api/Pharma/GetBillingByPatientId?PatientId=${widget.patientId}'),
+      final url = Uri.parse(
+        '${AppConfig.apiUrl1}${AppConfig.getBillingByPatientIdEndpoint}?PatientId=${widget.patientId}',
       );
+
+      final response = await http.get(url);
 
       if (response.statusCode == 200) {
         setState(() {
@@ -249,27 +251,27 @@ class _BookingAppointmentPageState extends State<BookingAppointmentPage> {
                         style: TextStyle(
                             fontSize: 14, color: Colors.black54),
                       ),
-                      SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          OutlinedButton(
-                            onPressed: () {},
-                            child: Text('Cancel',
-                                style: TextStyle(color: Colors.teal)),
-                            style: OutlinedButton.styleFrom(
-                                side: BorderSide(color: Colors.teal)),
-                          ),
-                          SizedBox(width: 10),
-                          OutlinedButton(
-                            onPressed: () {},
-                            child: Text('Confirm',
-                                style: TextStyle(color: Colors.blue)),
-                            style: OutlinedButton.styleFrom(
-                                side: BorderSide(color: Colors.blue)),
-                          ),
-                        ],
-                      ),
+                      // SizedBox(height: 10),
+                      // Row(
+                      //   mainAxisAlignment: MainAxisAlignment.center,
+                      //   children: [
+                      //     OutlinedButton(
+                      //       onPressed: () {},
+                      //       child: Text('Cancel',
+                      //           style: TextStyle(color: Colors.teal)),
+                      //       style: OutlinedButton.styleFrom(
+                      //           side: BorderSide(color: Colors.teal)),
+                      //     ),
+                      //     SizedBox(width: 10),
+                      //     OutlinedButton(
+                      //       onPressed: () {},
+                      //       child: Text('Confirm',
+                      //           style: TextStyle(color: Colors.blue)),
+                      //       style: OutlinedButton.styleFrom(
+                      //           side: BorderSide(color: Colors.blue)),
+                      //     ),
+                      //   ],
+                      // ),
                     ],
                   ),
                 );

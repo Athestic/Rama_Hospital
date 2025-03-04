@@ -21,6 +21,10 @@ import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'about.dart';
 import 'termsandcondition.dart';
 import 'Privacy.dart';
+import 'app_config.dart';
+import 'patient_registration_other.dart';
+import 'patient_registration_lab.dart';
+
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -32,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? patientId;
   String? patientImage; // Store patient image
   String? patientName = "Hello, User"; // Default patient name if not logged in
+
 
   // Method to get the correct widget based on the selected index
   Widget get _currentPage {
@@ -78,12 +83,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Fetch patient data from the API
+
   Future<void> _fetchPatientData(String patientId, String token) async {
     try {
+      // Construct the full URL using AppConfig
+      final url = Uri.parse('${AppConfig.apiUrl1}${AppConfig.getPatientByIdEndpoint}?PatientId=$patientId');
+
       final response = await http.get(
-        Uri.parse(
-            'http://192.168.1.106:8081/api/HospitalApp/GetPatientById?PatientId=$patientId'),
+        url,
         headers: {
           'Authorization': 'Bearer $token', // Add authentication token
         },
@@ -92,22 +99,24 @@ class _HomeScreenState extends State<HomeScreen> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('patientImage', data['patientImage']);
-        await prefs.setString('patientName', data['first_name']);
-
-        // Trigger an update in the drawer immediately after fetching data
+        // Update the patient image and name immediately in the drawer
         setState(() {
-          patientImage = data['patientImage'];
-          patientName = "Hello, ${data['first_name']}";
+          patientImage = data['patientImage']?.isNotEmpty == true ? data['patientImage'] : null;
+          patientName = "Hello, ${data['first_name'] ?? 'User'}";
         });
+
+        // Store the data locally in SharedPreferences
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('patientImage', data['patientImage'] ?? '');
+        await prefs.setString('patientName', data['first_name'] ?? 'User');
       } else {
-        print('Failed to load patient data');
+        print('Failed to load patient data: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching patient data: $e');
     }
   }
+
 
   // Function to handle tab navigation in the BottomNavigationBar
   void _onItemTapped(int index) async {
@@ -141,398 +150,429 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     // Get screen dimensions
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-    return Scaffold(
+    final screenWidth = MediaQuery
+        .of(context)
+        .size
+        .width;
+    final screenHeight = MediaQuery
+        .of(context)
+        .size
+        .height;
+    return OrientationBuilder(
+        builder: (context, orientation) {
+          // Determine if the orientation is landscape
+          bool isLandscape = orientation == Orientation.landscape;
+          return Scaffold(
 
 
-    appBar: _selectedIndex == 1 ? AppBar(
-        backgroundColor: Colors.white,
-        automaticallyImplyLeading: false,
-        elevation: 0,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Builder(
-              builder: (BuildContext context) {
-                return IconButton(
-                  icon: CircleAvatar(
-                    radius: 20,
-                    backgroundImage: patientImage != null
-                        ? MemoryImage(base64Decode(patientImage!))
-                        : AssetImage('assets/logo/person.jpeg') as ImageProvider,
+            appBar: _selectedIndex == 1
+                ? AppBar(
+              backgroundColor: Colors.white,
+              automaticallyImplyLeading: false,
+              elevation: 0,
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Builder(
+                    builder: (BuildContext context) {
+                      return IconButton(
+                        icon: CircleAvatar(
+                          radius: isLandscape ? 15 : 20, // Smaller radius in landscape
+                          backgroundImage: patientImage != null
+                              ? MemoryImage(base64Decode(patientImage!))
+                              : AssetImage('assets/logo/person.jpeg') as ImageProvider,
+                        ),
+                        onPressed: () {
+                          Scaffold.of(context).openDrawer();
+                        },
+                      );
+                    },
                   ),
-                  onPressed: () {
-                    Scaffold.of(context).openDrawer();
-                  },
-                );
-              },
-            ),
-            Padding(
-              padding: EdgeInsets.only(top: 5.0),
-              child: Image.asset(
-                'assets/logo/mainlogo.png',
-                height: screenHeight * 0.4, // Dynamic height based on screen height
-                width: screenWidth * 0.4, // Dynamic width based on screen width
-              ),
-            ),
-            Row(
-              children: [
-                IconButton(
-                  icon: SizedBox(
-                    width: screenWidth * 0.1, // Dynamic width based on screen width
-                    height: screenHeight * 0.1, // Dynamic height based on screen height
-                    child: Image.asset('assets/ambulance.png'),
+                  Padding(
+                    padding: EdgeInsets.only(top: 5.0),
+                    child: Image.asset(
+                      'assets/logo/mainlogo.png',
+                      height: isLandscape ? screenHeight * 0.3 : screenHeight * 0.5, // Adjust height
+                      width: isLandscape ? screenWidth * 0.2 : screenWidth * 0.3, // Adjust width
+                    ),
                   ),
-                  onPressed: () {
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (BuildContext context) {
-                        return Container(
-                          height: screenHeight * 0.18, // Dynamic height for modal
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              RichText(
-                                text: TextSpan(
-                                  children: <TextSpan>[
-                                    TextSpan(
-                                      text: 'Emergency ',
-                                      style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: screenWidth * 0.045, // Responsive font size
-                                        fontWeight: FontWeight.bold,
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: SizedBox(
+                          width: isLandscape ? screenWidth * 0.08 : screenWidth * 0.1,
+                          height: isLandscape ? screenHeight * 0.08 : screenHeight * 0.1,
+                          child: Image.asset('assets/ambulance.png'),
+                        ),
+                        onPressed: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            builder: (BuildContext context) {
+                              return Container(
+                                height: screenHeight * (isLandscape ? 0.40 : 0.18),
+                                width: screenWidth * (isLandscape ? 1 : 1),
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    RichText(
+                                      text: TextSpan(
+                                        children: <TextSpan>[
+                                          TextSpan(
+                                            text: 'Emergency ',
+                                            style: TextStyle(
+                                              color: Colors.black,
+                                              fontSize: screenWidth * 0.045,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          TextSpan(
+                                            text: 'Call,',
+                                            style: TextStyle(
+                                              color: Colors.black,
+                                              fontSize: screenWidth * 0.045,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          TextSpan(
+                                            text: ' Ambulance',
+                                            style: TextStyle(
+                                              color: Colors.red,
+                                              fontSize: screenWidth * 0.045,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    TextSpan(
-                                      text: 'Call,',
-                                      style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: screenWidth * 0.045,
-                                        fontWeight: FontWeight.bold,
+                                    SizedBox(height: 16.0),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.red,
+                                        foregroundColor: Colors.white,
                                       ),
-                                    ),
-                                    TextSpan(
-                                      text: ' Ambulance',
-                                      style: TextStyle(
-                                        color: Colors.red,
-                                        fontSize: screenWidth * 0.045,
-                                        fontWeight: FontWeight.bold,
+                                      child: Text(
+                                        '7877775530',
+                                        style: TextStyle(
+                                          fontSize: screenWidth * 0.05,
+                                          fontFamily: 'Poppins',
+                                        ),
                                       ),
+                                      onPressed: () {
+                                        _launchDialer(context, '7877775530');
+                                      },
                                     ),
                                   ],
                                 ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                      IconButton(
+                        icon: SizedBox(
+                          width: isLandscape ? screenWidth * 0.08 : screenWidth * 0.1,
+                          height: isLandscape ? screenHeight * 0.08 : screenHeight * 0.1,
+                          child: Image.asset('assets/offer.png'),
+                        ),
+                        onPressed: () {},
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            )
+                : null,
+              drawer: Drawer(
+                width: isLandscape ? 250 : 270, // Adjust drawer width for landscape
+                child: Container(
+                  color: Colors.white,
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    children: <Widget>[
+                      DrawerHeader(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CircleAvatar(
+                              radius: isLandscape ? 30 : 40, // Adjust avatar size for landscape
+                              backgroundImage: patientImage != null
+                                  ? MemoryImage(base64Decode(patientImage!))
+                                  : AssetImage('assets/logo/person.jpeg') as ImageProvider,
+                            ),
+                            SizedBox(height: isLandscape ? 10 : 15),
+                            Text(
+                              patientName ?? 'Hello, User',
+                              style: TextStyle(
+                                color: AppColors.primaryColor,
+                                fontSize: isLandscape ? 16 : 18,
+                                fontWeight: FontWeight.bold,
                               ),
-                              SizedBox(height: 16.0),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red,
-                                  // Background color
-                                  foregroundColor: Colors.white, // Text color
-                                ),
-                                child: Text(
-                                  '7877775530',
-                                  style: TextStyle(
-                                    fontSize: screenWidth * 0.05, // Responsive font size
-                                    fontFamily: 'Poppins',
-                                  ),
-                                ),
-                                onPressed: () {
-                                  _launchDialer(context, '7877775530'); // Pass the context here
-                                },
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+
+              // My Account section
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 4.0, horizontal: 6.0),
+                      child: Text(
+                        'My Account',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Divider(),
+                    ListTile(
+                      leading: Icon(Icons.person),
+                      title: Text('Profile'),
+                      onTap: () {
+                        Navigator.pop(context); // Close the drawer
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) =>
+                              PatientLogin()),
                         );
                       },
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: SizedBox(
-                    width: screenWidth * 0.1,
-                    height: screenHeight * 0.1,
-                    child: Image.asset('assets/offer.png'),
-                  ),
-                  onPressed: () {},
-                ),
-              ],
-            ),
-          ],
-        ),
-      )
-          : null,// Hide the AppBar when the appointment tab is selected
-      drawer:Drawer(
-        width: 270,
-        child: Container(
-          color: Colors.white,
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: <Widget>[
-              DrawerHeader(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundImage: patientImage != null
-                          ? MemoryImage(base64Decode(patientImage!))
-                          : AssetImage('assets/logo/person.jpeg') as ImageProvider,
                     ),
-                    SizedBox(height: 15),
-                    Text(
-                      patientName ?? 'Hello, User',
-                      style: TextStyle(
-                        color: AppColors.primaryColor,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    Divider(),
+                    // Second Section Header
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 1.0, horizontal: 3.0),
+                      child: Text(
+                        'My Services',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
+                    ),
+                    Divider(),
+                    ListTile(
+                      leading: Icon(Icons.calendar_today),
+                      title: Text('My Appointments'),
+                      onTap: () async {
+                        SharedPreferences prefs = await SharedPreferences
+                            .getInstance();
+                        final patientId = prefs.getString('patientId');
+
+                        if (patientId != null) {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) =>
+                                BookingAppointmentPage(patientId: patientId)),
+                          );
+                        } else {
+                          _showLoginDialog(
+                              context); // Show login dialog if not logged in
+                        }
+                      },
+                    ),
+
+                    ListTile(
+                      leading: Icon(Icons.health_and_safety),
+                      title: Text('My Health Records'),
+                      onTap: () async {
+                        SharedPreferences prefs = await SharedPreferences
+                            .getInstance();
+                        final patientId = prefs.getString('patientId');
+                        final token = prefs.getString('jwtToken');
+
+                        if (patientId != null && token != null) {
+                          Navigator.pop(context); // Close the drawer
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) =>
+                                HealthRecordsScreen(patientId: patientId)),
+                          );
+                        } else {
+                          _showLoginDialog(context); // Show login dialog
+                        }
+                      },
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.add_circle_outline),
+                      title: Text('Book an Appointment'),
+                      onTap: () {
+                        Navigator.pop(context); // Close the drawer
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => SpecializationsScreen()),
+                        );
+                      },
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.medical_information),
+                      title: Text('Pharmacy Order'),
+                      onTap: () async {
+                        SharedPreferences prefs = await SharedPreferences
+                            .getInstance();
+                        final patientId = prefs.getString('patientId');
+
+                        if (patientId != null) {
+                          Navigator.pop(context); // Close the drawer
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) =>
+                                PharmacyOrderList(patientId: patientId)),
+                          );
+                        } else {
+                          _showLoginDialog(
+                              context); // Show login dialog if not logged in
+                        }
+                      },
+                    ),
+
+                    ListTile(
+                      leading: Icon(Icons.medical_information),
+                      title: Text('Lab Order'),
+                      onTap: () async {
+                        SharedPreferences prefs = await SharedPreferences
+                            .getInstance();
+                        final patientId = prefs.getString('patientId');
+
+                        if (patientId != null) {
+                          Navigator.pop(context); // Close the drawer
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) =>
+                                Laborderlist(patientId: patientId)),
+                          );
+                        } else {
+                          _showLoginDialog(
+                              context); // Show login dialog if not logged in
+                        }
+                      },
+                    ),
+
+                    Divider(),
+                    // Other Information section
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 4.0, horizontal: 6.0),
+                      child: Text(
+                        'Other Information',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Divider(),
+                    ListTile(
+                      leading: Icon(Icons.privacy_tip),
+                      title: Text('Privacy Policy'),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => PrivacyPolicyPage()),
+                        );
+                      },
+                    ),
+
+                    ListTile(
+                      leading: Icon(Icons.info_outline),
+                      title: Text('About Us'),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => About()),
+                        );
+                      },
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.rule),
+                      title: Text('Terms and Conditions'),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) =>
+                              TermsAndConditionsScreen()),
+                        );
+                      },
+                    ),
+
+                    Divider(),
+                    ListTile(
+                      leading: Icon(Icons.feedback_outlined),
+                      title: Text('Feedback'),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) =>
+                              FeedbackScreen()),
+                        );
+                      },
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.question_answer),
+                      title: Text('FAQs'),
+                      onTap: () {},
+                    ),
+                    Divider(),
+                    ListTile(
+                      leading: Icon(Icons.logout),
+                      title: Text('Logout'),
+                      onTap: () async {
+                        // Clear shared preferences to log out the user
+                        SharedPreferences prefs = await SharedPreferences
+                            .getInstance();
+                        await prefs.clear();
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (context) =>
+                              PatientLogin()),
+                              (route) => false,
+                        );
+                      },
                     ),
                   ],
                 ),
               ),
-              // My Account section
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 6.0),
-                child: Text(
-                  'My Account',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.bold,
-                  ),
+            ),
+            body: _currentPage, // Display the selected page
+            bottomNavigationBar: BottomNavigationBar(
+              type: BottomNavigationBarType.fixed,
+              currentIndex: _selectedIndex,
+              onTap: _onItemTapped,
+              items: <BottomNavigationBarItem>[
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.person),
+                  label: 'Profile',
                 ),
-              ),
-              Divider(),
-              ListTile(
-                leading: Icon(Icons.person),
-                title: Text('Profile'),
-                onTap: () {
-                  Navigator.pop(context); // Close the drawer
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => PatientLogin()),
-                  );
-                },
-              ),
-              Divider(),
-              // Second Section Header
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    vertical: 1.0, horizontal: 3.0),
-                child: Text(
-                  'My Services',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.bold,
-                  ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home),
+                  label: 'Home',
                 ),
-              ),
-              Divider(),
-              ListTile(
-                leading: Icon(Icons.calendar_today),
-                title: Text('My Appointments'),
-                onTap: () async {
-                  SharedPreferences prefs = await SharedPreferences.getInstance();
-                  final patientId = prefs.getString('patientId');
-
-                  if (patientId != null) {
-                    Navigator.pop(context); // Close the drawer
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => BookingAppointmentPage(patientId: patientId)),
-                    );
-                  } else {
-                    _showLoginDialog(context); // Show login dialog if not logged in
-                  }
-                },
-              ),
-
-              ListTile(
-                leading: Icon(Icons.health_and_safety),
-                title: Text('My Health Records'),
-                onTap: () async {
-                  SharedPreferences prefs = await SharedPreferences
-                      .getInstance();
-                  final patientId = prefs.getString('patientId');
-                  final token = prefs.getString('jwtToken');
-
-                  if (patientId != null && token != null ) {
-                    Navigator.pop(context); // Close the drawer
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) =>
-                          HealthRecordsScreen(patientId: patientId)),
-                    );
-                  } else {
-                    _showLoginDialog(context); // Show login dialog
-                  }
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.add_circle_outline),
-                title: Text('Book an Appointment'),
-                onTap: () {
-                  Navigator.pop(context); // Close the drawer
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => SpecializationsScreen()),
-                  );
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.medical_information),
-                title: Text('Pharmacy Order'),
-                onTap: () async {
-                  SharedPreferences prefs = await SharedPreferences.getInstance();
-                  final patientId = prefs.getString('patientId');
-
-                  if (patientId != null) {
-                    Navigator.pop(context); // Close the drawer
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => PharmacyOrderList(patientId: patientId)),
-                    );
-                  } else {
-                    _showLoginDialog(context); // Show login dialog if not logged in
-                  }
-                },
-              ),
-
-              ListTile(
-                leading: Icon(Icons.medical_information),
-                title: Text('Lab Order'),
-                onTap: () async {
-                  SharedPreferences prefs = await SharedPreferences.getInstance();
-                  final patientId = prefs.getString('patientId');
-
-                  if (patientId != null) {
-                    Navigator.pop(context); // Close the drawer
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => Laborderlist(patientId: patientId)),
-                    );
-                  } else {
-                    _showLoginDialog(context); // Show login dialog if not logged in
-                  }
-                },
-              ),
-
-              Divider(),
-              // Other Information section
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 6.0),
-                child: Text(
-                  'Other Information',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.bold,
-                  ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.schedule),
+                  label: 'Appointments',
                 ),
-              ),
-              Divider(),
-              ListTile(
-                leading: Icon(Icons.privacy_tip),
-                title: Text('Privacy Policy'),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => Privacy()),
-                  );
-                },
-              ),
-
-              ListTile(
-                leading: Icon(Icons.info_outline),
-                title: Text('About Us'),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => About()),
-                  );
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.rule),
-                title: Text('Terms and Conditions'),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => TermsAndConditionsScreen()),
-                  );
-                },
-              ),
-
-              Divider(),
-              ListTile(
-                leading: Icon(Icons.feedback_outlined),
-                title: Text('Feedback'),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => FeedbackScreen()),
-                  );
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.question_answer),
-                title: Text('FAQs'),
-                onTap: () {},
-              ),
-              Divider(),
-              ListTile(
-                leading: Icon(Icons.logout),
-                title: Text('Logout'),
-                onTap: () async {
-                  // Clear shared preferences to log out the user
-                  SharedPreferences prefs = await SharedPreferences.getInstance();
-                  await prefs.clear();
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => PatientLogin()),
-                        (route) => false,
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-      body: _currentPage, // Display the selected page
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.schedule),
-            label: 'Appointments',
-          ),
-        ],
-        selectedItemColor: AppColors.primaryColor,
-        unselectedItemColor: Colors.grey,
-        selectedFontSize: 14,
-        unselectedFontSize: 14,
-        selectedLabelStyle: TextStyle(fontWeight: FontWeight.bold),
-        unselectedLabelStyle: TextStyle(fontWeight: FontWeight.normal),
-        backgroundColor: Colors.white,
-      ),
+              ],
+              selectedItemColor: AppColors.primaryColor,
+              unselectedItemColor: Colors.grey,
+              selectedFontSize: 14,
+              unselectedFontSize: 14,
+              selectedLabelStyle: TextStyle(fontWeight: FontWeight.bold),
+              unselectedLabelStyle: TextStyle(fontWeight: FontWeight.normal),
+              backgroundColor: Colors.white,
+            ),
+          );
+        }
     );
   }
 }
@@ -583,7 +623,7 @@ void _launchDialer(BuildContext context, String phoneNumber) async {
           title: Text('Error'),
           content: Container(
             width: screenWidth * 0.8, // 80% of screen width
-            height: screenHeight * 0.05, // 10% of screen height
+            height: screenHeight * 0.035, // 10% of screen height
             child: Center(
               child: Text('Could not launch the dialer.'),
             ),
@@ -610,10 +650,13 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   TextEditingController _searchController = TextEditingController();
   List<String> _videoIds = [
-    'OCmc7Nmm2wM',
-    'c27fqdA4n18',
-    'WQ2ByqswdLk',
-    'JoTOsWBqalk',
+    'RWFuFD5X2W0',
+    'mBOHXb1toK8',
+    'egpvnmn03b8',
+    'nmrhuACA2k4',
+    'Kb7vHrB6V7Q',
+    '0vrDk36i-8Q',
+    'OwdqlveqTtA'
   ];
   late YoutubePlayerController _youtubeController;
   bool _isVideoPlayerVisible = false; // New flag to track visibility
@@ -743,7 +786,7 @@ class _HomePageState extends State<HomePage> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(builder: (context) =>
-                                        PatientRegistrationForm()),
+                                        PatientRegistrationForm2()),
                                   );
                                 },
                                 child: Text("Register",
@@ -764,6 +807,120 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+
+  void _showLoginRequiredDialog1() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
+          ),
+          child: AnimatedOpacity(
+            opacity: 1.0,
+            duration: Duration(milliseconds: 300),
+            child: Container(
+                padding: EdgeInsets.all(20.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16.0),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 10.0,
+                      offset: Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "Login Required",
+                        style: TextStyle(
+                          fontSize: 24.0,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal,
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      Text(
+                        "Sorry, you are not logged in. Please log in to continue.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16.0,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        "😔", // Emoji
+                        style: TextStyle(fontSize: 40),
+                      ),
+                      SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: <Widget>[
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(5.0),
+                              ),
+                              padding: EdgeInsets.symmetric(horizontal: 10,
+                                  vertical: 5),
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => PatientLogin()),
+                              );
+                            },
+                            child: Text("Login",
+                              style: TextStyle(fontSize: 18,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: <Widget>[
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.teal,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(5.0),
+                                  ),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 5),
+                                ),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) =>
+                                        PatientRegistrationForm1()),
+                                  );
+                                },
+                                child: Text("Register",
+                                  style: TextStyle(fontSize: 18,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ]
+                )),
+          ),
+        );
+      },
+    );
+  }
 
   void _navigateToScreen(Widget screen, {bool requiresLogin = true}) async {
     if (requiresLogin) {
@@ -814,7 +971,7 @@ class _HomePageState extends State<HomePage> {
                       titleLine1: 'Doctor',
                       titleLine2: 'Appointment',
                       subtitle: 'Book Now',
-                      imageAsset: 'assets/homeCon/Stethoscope.png',
+                      imageAsset: 'assets/homeCon/doctoricon.png',
                       backgroundColor: Color(0xFFE0F7FA),
                       onPressedSubtitle: () {
                         // No login required
@@ -822,6 +979,7 @@ class _HomePageState extends State<HomePage> {
                             SpecializationsScreen(), requiresLogin: false);
                       },
                     ),
+
                     SizedBox(width: 16.0),
                     _buildServiceCard(
                       titleLine1: 'Lab ',
@@ -856,7 +1014,7 @@ class _HomePageState extends State<HomePage> {
                       titleLine1: 'Health',
                       titleLine2: 'Package',
                       subtitle: 'Explore',
-                      imageAsset: 'assets/homeCon/img.png',
+                      imageAsset: 'assets/homeCon/Stethoscope.png',
                       backgroundColor: Color(0xFFFFF3E0),
                       onPressedSubtitle: () {
                         // No login required
@@ -872,7 +1030,7 @@ class _HomePageState extends State<HomePage> {
 
 
           SizedBox(height: 16.0),
-          // Horizontal Scroll Section
+
           Text(
             'Popular Services',
             style: TextStyle(
@@ -884,8 +1042,8 @@ class _HomePageState extends State<HomePage> {
           ),
           SizedBox(height: 8.0),
           Container(
-            height: 150, // Set the height for the horizontal scroll view
-            // Set the height for the horizontal scroll view
+            height: 150,
+
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -1090,7 +1248,7 @@ class _HomePageState extends State<HomePage> {
                         titleLine1,
                         style: TextStyle(
                           fontSize: 12.0,
-                          color: AppColors.primaryColor,
+                          color: AppColors.secondaryColor,
                         ),
                       ),
                       Text(
@@ -1098,7 +1256,7 @@ class _HomePageState extends State<HomePage> {
                         style: TextStyle(
                           fontSize: 14.0,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.primaryColor,
+                          color: AppColors.secondaryColor,
                         ),
                       ),
                     ],
@@ -1131,7 +1289,7 @@ class _HomePageState extends State<HomePage> {
                       fontSize: 10.0,
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primaryColor,
+                      color: AppColors.secondaryColor,
                     ),
                   ),
                 ),
@@ -1143,6 +1301,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+
 
 
   class Specialty {

@@ -11,7 +11,7 @@ class ThankYouScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset('assets/thankyou.png'), // Replace with your image path
+            Image.asset('assets/thankyou.png'),
             SizedBox(height: 20),
             Text(
               'Thank You!',

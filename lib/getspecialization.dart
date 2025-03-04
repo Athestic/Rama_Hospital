@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:global/colors.dart';
 import 'package:http/http.dart' as http;
 import 'doctor_list_screen.dart';
-
+import 'app_config.dart';
 class SpecializationsScreen extends StatefulWidget {
   @override
   _SpecializationsScreenState createState() => _SpecializationsScreenState();
@@ -22,7 +22,7 @@ class _SpecializationsScreenState extends State<SpecializationsScreen> {
   }
 
   Future<List<Specialization>> fetchSpecializations() async {
-    final response = await http.get(Uri.parse('http://192.168.1.106:8081/api/HospitalApp/Specialitytitles'));
+    final response = await http.get(Uri.parse('${AppConfig.apiUrl1}${AppConfig.specialityEndpoint}'));
 
     if (response.statusCode == 200) {
       List<dynamic> jsonData = json.decode(response.body);

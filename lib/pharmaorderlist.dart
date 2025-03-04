@@ -3,6 +3,8 @@ import 'package:global/colors.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'app_config.dart';
+import 'dart:typed_data';
 
 class PharmacyOrderList extends StatefulWidget {
   final String patientId;
@@ -27,7 +29,7 @@ class _PharmacyOrderListState extends State<PharmacyOrderList> {
   Future<void> _fetchPharmacyOrders() async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.1.106:8081/api/Pharma/GetRequisitionByPatientId?PatientId=${widget.patientId}'),
+        Uri.parse('${AppConfig.apiUrl1}${AppConfig.getRequisitionByPatientIdEndpoint}?PatientId=${widget.patientId}'),
       );
 
       if (response.statusCode == 200) {
@@ -72,21 +74,41 @@ class _PharmacyOrderListState extends State<PharmacyOrderList> {
   Future<void> _fetchOrderDetails(int orderId) async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.1.106:8081/api/Pharma/GetRequisitionDetailsById?MedicineReqId=$orderId'),
+        Uri.parse('http://192.168.1.144:8081/api/Pharma/GetRequisitionDetailsById?MedicineReqId=$orderId'),
       );
 
       if (response.statusCode == 200) {
-        List<dynamic> details = json.decode(response.body);
-        _showOrderDetailsDialog(details);
+        // Decode the response JSON
+        List<dynamic> data = json.decode(response.body);
+
+        if (data.isNotEmpty) {
+          // Extract the prescription and details
+          final prescription = data.first['precription'] as String?;
+          final details = data.first['details'] as List<dynamic>?;
+
+          // Display the details in the bottom sheet
+          _showOrderDetailsDialog(details ?? [], prescription: prescription);
+        } else {
+          print('No data available for this order');
+        }
       } else {
-        print('Failed to load order details');
+        print('Failed to load order details. Status code: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching order details: $e');
     }
   }
+  void _showOrderDetailsDialog(List<dynamic> details, {String? prescription}) {
+    // Decode the prescription image if available
+    Uint8List? prescriptionImage;
+    if (prescription != null) {
+      try {
+        prescriptionImage = base64Decode(prescription);
+      } catch (e) {
+        print('Error decoding prescription image: $e');
+      }
+    }
 
-  void _showOrderDetailsDialog(List<dynamic> details) {
     showModalBottomSheet(
       context: context,
       shape: RoundedRectangleBorder(
@@ -94,12 +116,18 @@ class _PharmacyOrderListState extends State<PharmacyOrderList> {
       ),
       isScrollControlled: true,
       builder: (BuildContext context) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final screenHeight = MediaQuery.of(context).size.height;
+
         return ConstrainedBox(
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.6,
+            maxHeight: screenHeight * 0.5,
           ),
           child: Padding(
-            padding: EdgeInsets.all(16.0),
+            padding: EdgeInsets.symmetric(
+              horizontal: screenWidth * 0.04,
+              vertical: screenHeight * 0.02,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,42 +136,74 @@ class _PharmacyOrderListState extends State<PharmacyOrderList> {
                   child: Text(
                     'Order Details',
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: screenWidth * 0.05, // Responsive font size
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-                SizedBox(height: 16.0),
-                details.isEmpty
-                    ? Center(
-                  child: Text(
-                    'No items available.',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                )
-                    : Flexible(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: details.length,
-                    itemBuilder: (context, index) {
-                      final item = details[index];
-                      return Card(
-                        margin: EdgeInsets.symmetric(vertical: 8.0),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                        child: ListTile(
-                          title: Text(
-                            item['item_name'] ?? 'N/A',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                SizedBox(height: screenHeight * 0.02),
+                if (details.isEmpty)
+                  Center(
+                    child: Text(
+                      'No items available.',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: screenWidth * 0.04, // Responsive font size
+                      ),
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: details.length,
+                      itemBuilder: (context, index) {
+                        final item = details[index];
+                        return Card(
+                          margin: EdgeInsets.symmetric(
+                            vertical: screenHeight * 0.01,
                           ),
-                          subtitle: Text('Quantity: ${item['qty'] ?? 'N/A'}'),
-                        ),
-                      );
-                    },
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.all(screenWidth * 0.03),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item['item_name'] ?? 'N/A',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: screenWidth * 0.045, // Responsive font size
+                                  ),
+                                ),
+                                SizedBox(height: screenHeight * 0.01),
+                                Text(
+                                  'Quantity: ${item['qty'] ?? 'N/A'}',
+                                  style: TextStyle(
+                                    fontSize: screenWidth * 0.04, // Responsive font size
+                                  ),
+                                ),
+                                if (prescriptionImage != null)
+                                  Padding(
+                                    padding: EdgeInsets.only(top: screenHeight * 0.02),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8.0),
+                                      child: Image.memory(
+                                        prescriptionImage,
+                                        fit: BoxFit.cover,
+                                        height: screenHeight * 0.2, // Responsive height
+                                        width: double.infinity,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
-                SizedBox(height: 16.0),
               ],
             ),
           ),
@@ -187,9 +247,11 @@ class _PharmacyOrderListState extends State<PharmacyOrderList> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -198,6 +260,7 @@ class _PharmacyOrderListState extends State<PharmacyOrderList> {
             color: Colors.teal,
             fontFamily: 'Poppins',
             fontWeight: FontWeight.bold,
+            fontSize: screenWidth * 0.05, // Responsive font size
           ),
         ),
         actions: [
@@ -219,8 +282,11 @@ class _PharmacyOrderListState extends State<PharmacyOrderList> {
             clipBehavior: Clip.none,
             children: [
               Container(
-                margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 5.0),
-                padding: EdgeInsets.all(16.0),
+                margin: EdgeInsets.symmetric(
+                  horizontal: screenWidth * 0.04,
+                  vertical: screenHeight * 0.01,
+                ),
+                padding: EdgeInsets.all(screenWidth * 0.04),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
@@ -236,7 +302,7 @@ class _PharmacyOrderListState extends State<PharmacyOrderList> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: 20),
+                    SizedBox(height: screenHeight * 0.02),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -244,18 +310,19 @@ class _PharmacyOrderListState extends State<PharmacyOrderList> {
                           'Order Id',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
+                            fontSize: screenWidth * 0.045,
                           ),
                         ),
                         Text(
                           '${order['medicine_requisition_id']?.toString() ?? "N/A"}',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: screenWidth * 0.045,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 10),
+                    SizedBox(height: screenHeight * 0.01),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -263,17 +330,19 @@ class _PharmacyOrderListState extends State<PharmacyOrderList> {
                           'Date',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
+                            fontSize: screenWidth * 0.04,
                           ),
                         ),
                         Text(
                           formattedDate,
                           style: TextStyle(
                             color: Colors.grey[700],
+                            fontSize: screenWidth * 0.04,
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 12.0),
+                    SizedBox(height: screenHeight * 0.015),
                     Center(
                       child: ElevatedButton(
                         onPressed: () {
@@ -284,13 +353,17 @@ class _PharmacyOrderListState extends State<PharmacyOrderList> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: screenWidth * 0.02,
+                            vertical: screenHeight * 0.010,
+                          ),
                         ),
                         child: Text(
                           'View Details',
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
+                            fontSize: screenWidth * 0.035,
                           ),
                         ),
                       ),
@@ -299,7 +372,7 @@ class _PharmacyOrderListState extends State<PharmacyOrderList> {
                 ),
               ),
               Positioned(
-                top: 5,
+                top: screenHeight * 0.005,
                 left: 0,
                 right: 0,
                 child: Center(
@@ -322,4 +395,3 @@ class _PharmacyOrderListState extends State<PharmacyOrderList> {
     }
   }
 }
-

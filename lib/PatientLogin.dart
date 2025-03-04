@@ -6,6 +6,7 @@ import 'package:sizer/sizer.dart';
 import 'patient_profile.dart';
 import 'Homepage.dart';
 import 'colors.dart';
+import 'app_config.dart';
 
 class PatientLogin extends StatefulWidget {
   @override
@@ -48,7 +49,7 @@ class _PatientLoginState extends State<PatientLogin> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.1.106:8081/api/HospitalApp/PatientLogin'),
+        Uri.parse('${AppConfig.apiUrl1}${AppConfig.patientLoginEndpoint}'),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'dart:convert'; // for decoding base64 images
+import 'dart:convert';
 import 'colors.dart';
 import 'doctor_list_screen.dart';
 import 'patient_registration.dart';

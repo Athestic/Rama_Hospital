@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'app_config.dart';
 import 'package:open_file/open_file.dart'; // Import this after adding it to pubspec.yaml
 
 class ReportScreen extends StatefulWidget {
@@ -44,8 +45,7 @@ class _ReportScreenState extends State<ReportScreen> {
     try {
       final response = await http.get(
         Uri.parse(
-            'https://ramahospital.co.in/HospitalApplication/api/HospitalApp/GetPatientById?PatientId=${widget
-                .patientId}'),
+            '${AppConfig.apiUrl1}${AppConfig.getPatientDetailsByIdEndpoint}?PatientId=${widget.patientId}'),
       );
 
       if (response.statusCode == 200) {
@@ -93,7 +93,8 @@ class _ReportScreenState extends State<ReportScreen> {
     bool? granted = await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestPermission();
+        ?.requestNotificationsPermission();
+
 
     if (granted == true) {
       // Permission granted

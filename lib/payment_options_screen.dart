@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'colors.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class PaymentOptionsScreen extends StatefulWidget {
   final double amount;
@@ -12,7 +14,126 @@ class PaymentOptionsScreen extends StatefulWidget {
 }
 
 class _PaymentOptionsScreenState extends State<PaymentOptionsScreen> {
+  late Razorpay _razorpay;
   bool _isPaymentProcessing = false;  // Flag to check payment status
+
+  @override
+  void initState() {
+    super.initState();
+    _razorpay = Razorpay();
+
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+  }
+
+  @override
+  void dispose() {
+    _razorpay.clear();
+    super.dispose();
+  }
+
+  void _startPayment() {
+    setState(() {
+      _isPaymentProcessing = true;
+    });
+
+    var options = {
+      'key': 'PHXbP0J6w2FK0L', // Replace with your Razorpay Key
+      'amount': 100, // Amount in paisa
+      'name': 'Rama Hospital',
+      'description': 'Appointment Payment',
+      'prefill': {
+        'contact': '9876543210', // User's phone number
+        'email': 'user@example.com' // User's email
+      },
+      'theme': {
+        'color': '#FF6F00' // Change color to match your theme
+      }
+    };
+    // (widget.amount * 100).toInt()
+    try {
+      _razorpay.open(options);
+    } catch (e) {
+      setState(() {
+        _isPaymentProcessing = false;
+      });
+      print("Error: $e");
+    }
+  }
+
+  void _handlePaymentSuccess(PaymentSuccessResponse response) {
+    setState(() {
+      _isPaymentProcessing = false;
+    });
+
+    // Show success animation
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Payment Successful"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Lottie.asset('assets/icon/paymentdone.json', width: 150, height: 150),
+            SizedBox(height: 10),
+            Text("Transaction ID: ${response.paymentId}"),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context, true); // Return to previous screen
+            },
+            child: Text("OK"),
+          )
+        ],
+      ),
+    );
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    setState(() {
+      _isPaymentProcessing = false;
+    });
+
+    // Show error message
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Payment Failed"),
+        content: Text("Error: ${response.message}"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Retry"),
+          )
+        ],
+      ),
+    );
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    setState(() {
+      _isPaymentProcessing = false;
+    });
+
+    // Handle external wallet selection
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("External Wallet Selected"),
+        content: Text("Wallet: ${response.walletName}"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("OK"),
+          )
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,20 +142,25 @@ class _PaymentOptionsScreenState extends State<PaymentOptionsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Payment Options',
-            style: TextStyle(color: AppColors.primaryColor, fontFamily: 'Poppins', fontWeight: FontWeight.bold)),
+        title: Text(
+          'Payment Options',
+          style: TextStyle(
+            color: AppColors.primaryColor,
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         centerTitle: true,
       ),
       body: _isPaymentProcessing
           ? Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Lottie.asset('assets/icon/paymentdone.json', width: 200, height: 200),
             SizedBox(height: screenHeight * 0.03),
             Text(
-              'Your appointment is booked!',
+              'Processing Payment...',
               style: TextStyle(
                   fontSize: screenWidth * 0.05,
                   fontWeight: FontWeight.bold,
@@ -45,7 +171,6 @@ class _PaymentOptionsScreenState extends State<PaymentOptionsScreen> {
       )
           : Column(
         children: [
-          // Payment options list
           Expanded(
             child: ListView(
               padding: EdgeInsets.symmetric(
@@ -54,7 +179,7 @@ class _PaymentOptionsScreenState extends State<PaymentOptionsScreen> {
               ),
               children: [
                 Text(
-                  'Credit/ Debit Card',
+                  'By Razorpay',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: screenWidth * 0.04,
@@ -62,99 +187,13 @@ class _PaymentOptionsScreenState extends State<PaymentOptionsScreen> {
                   ),
                 ),
                 ListTile(
-                  title: Text(
-                    'Add New Card',
-                    style: TextStyle(fontSize: screenWidth * 0.040),
-                  ),
-                  trailing: Text(
-                    'Add',
-                    style: TextStyle(
-                      color: AppColors.secondaryColor,
-                      fontSize: screenWidth * 0.040,
-                    ),
-                  ),
-                  onTap: () {
-                    // Navigate to card details entry screen
-                  },
-                ),
-                Divider(),
-                Text(
-                  'By UPI',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: screenWidth * 0.04,
-                    fontFamily: "Poppins",
-                  ),
-                ),
-                ListTile(
-                  leading: Image.asset(
-                    'assets/icon/googlepay.png',
-                    width: screenWidth * 0.07,
-                  ),
-                  title: Text('Google Pay', style: TextStyle(fontSize: screenWidth * 0.040)),
-                  onTap: () {
-                    // Handle Google Pay integration
-                  },
-                ),
-                ListTile(
-                  leading: Image.asset(
-                    'assets/icon/phoonepe.png',
-                    width: screenWidth * 0.07,
-                  ),
-                  title: Text('PhonePe', style: TextStyle(fontSize: screenWidth * 0.040)),
-                  onTap: () {
-                    // Handle PhonePe integration
-                  },
-                ),
-                ListTile(
-                  leading: Image.asset(
-                    'assets/icon/paytm.png',
-                    width: screenWidth * 0.07,
-                  ),
-                  title: Text('Paytm', style: TextStyle(fontSize: screenWidth * 0.040)),
-                  onTap: () {
-                    // Handle Paytm integration
-                  },
-                ),
-                ListTile(
-                  title: Text(
-                    'Pay with UPI ID',
-                    style: TextStyle(fontSize: screenWidth * 0.040),
-                  ),
-                  trailing: Text(
-                    'Add UPI ID',
-                    style: TextStyle(color: AppColors.secondaryColor, fontSize: screenWidth * 0.040),
-                  ),
-                  onTap: () {
-                    // Navigate to UPI ID entry screen
-                  },
-                ),
-                Divider(),
-                Text(
-                  'Other Payment Methods',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: screenWidth * 0.05,
-                  ),
-                ),
-                ListTile(
-                  leading: Image.asset(
-                    'assets/icon/Bank.png',
-                    width: screenWidth * 0.07,
-                  ),
-                  title: Text('Net Banking', style: TextStyle(fontSize: screenWidth * 0.040)),
-                  trailing: Text(
-                    'Pay Now',
-                    style: TextStyle(color: AppColors.secondaryColor, fontSize: screenWidth * 0.045, fontFamily: "Poppins"),
-                  ),
-                  onTap: () {
-                    // Handle Net Banking integration
-                  },
+                  leading: Icon(Icons.payment, color: AppColors.secondaryColor),
+                  title: Text('Pay with Razorpay', style: TextStyle(fontSize: screenWidth * 0.040)),
+                  onTap: _startPayment,
                 ),
               ],
             ),
           ),
-          // Bottom amount and button
           Container(
             padding: EdgeInsets.symmetric(
               horizontal: screenWidth * 0.05,
@@ -171,18 +210,7 @@ class _PaymentOptionsScreenState extends State<PaymentOptionsScreen> {
                   ),
                 ),
                 ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _isPaymentProcessing = true;  // Start payment animation
-                    });
-
-                    // Simulate a delay for payment processing
-                    Future.delayed(Duration(seconds: 3), () {
-                      setState(() {
-                        // After delay, you can navigate or show confirmation
-                      });
-                    });
-                  },
+                  onPressed: _startPayment,
                   style: TextButton.styleFrom(
                     padding: EdgeInsets.symmetric(
                       horizontal: screenWidth * 0.03,
@@ -194,7 +222,7 @@ class _PaymentOptionsScreenState extends State<PaymentOptionsScreen> {
                     backgroundColor: AppColors.secondaryColor,
                   ),
                   child: Text(
-                    'Pay & Confirm',
+                    'Pay Now',
                     style: TextStyle(fontSize: screenWidth * 0.045, color: Colors.white, fontFamily: "Poppins"),
                   ),
                 ),
