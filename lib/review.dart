@@ -9,6 +9,7 @@ import 'dateandtimeslot.dart';
 import 'doctor_list_screen.dart';
 import 'payment_options_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'getspecialization.dart';
 
 class ReviewScreen extends StatefulWidget {
   final String? patientId;
@@ -31,7 +32,6 @@ class _ReviewScreenState extends State<ReviewScreen> {
   String? aadhaarNumber;
   String? phoneNumber;
   String? age;
-  String? _specialization;
   final double serviceCharge = 50.0;
   DateTime? selectedDate = SelectedAppointment().selectedDate;
   String? selectedSlot = SelectedAppointment().selectedSlot;
@@ -40,24 +40,16 @@ class _ReviewScreenState extends State<ReviewScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchspecialization();
     if (widget.patientId != null) {
       fetchPatientDetails();
-      print("Selected Slot: $widget.specializationName");
     }
   }
-  Future<void> _fetchspecialization()async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _specialization = prefs.getString('specializationName'); // Fetch patientId from SharedPreferences
-      isLoading = false; // Loading complete
-    });
-  }
+
 
   Future<void> fetchPatientDetails() async {
     final String apiUrl =
-        'http://192.168.1.109:8081/api/HospitalApp/GetPatientById?PatientId=${widget
-        .patientId}';
+        '${AppConfig.apiUrl1}${AppConfig.getPatientDetailsByIdEndpoint}?PatientId=${widget.patientId}';
+
     try {
       final response = await http.get(Uri.parse(apiUrl));
       if (response.statusCode == 200) {
@@ -247,7 +239,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                               ),
                               SizedBox(height: screenHeight * 0.005),
                               Text(
-                                _specialization ?? 'Specialization not available',
+                                SelectedSpecialization.specializationName?? 'Specialization not available',
                                 style: TextStyle(fontSize: screenWidth * 0.04),
                               ),
                               SizedBox(height: screenHeight * 0.005),
@@ -353,13 +345,23 @@ class _ReviewScreenState extends State<ReviewScreen> {
                     // Pay Now Button
                     TextButton(
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => PaymentOptionsScreen(amount: totalCharges),
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: Text('Coming Soon!'),
+                            content: Text('This option is not available currently. Available soon.'),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(context); // close the dialog
+                                },
+                                child: Text('OK'),
+                              ),
+                            ],
                           ),
                         );
                       },
+
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.symmetric(
                           horizontal: screenWidth * 0.03,

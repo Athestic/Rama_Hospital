@@ -6,6 +6,7 @@ import 'package:sizer/sizer.dart';
 import 'patient_profile.dart';
 import 'Homepage.dart';
 import 'colors.dart';
+import 'package:lottie/lottie.dart';
 import 'app_config.dart';
 
 class PatientLogin extends StatefulWidget {
@@ -66,14 +67,31 @@ class _PatientLoginState extends State<PatientLogin> {
           await prefs.setString('patientId', patientId);
           await prefs.setString('jwtToken', token);
 
+          // Show success animation for 3 seconds
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => Center(
+              child: Container(
+                width: 200,
+                height: 200,
+                child: Lottie.asset('assets/login.json'),
+              ),
+            ),
+          );
+
+          await Future.delayed(Duration(seconds: 3));
+
+          Navigator.pop(context); // Close the dialog
+
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-                builder: (context) => PatientProfileScreen(patientId: patientId)),
+              builder: (context) => PatientProfileScreen(patientId: patientId),
+            ),
           );
-        } else {
-          _showErrorDialog('Login failed', 'Incorrect phone number or password.');
         }
+
       } else {
         _showErrorDialog('Login failed', 'Incorrect phone number or password.');
       }

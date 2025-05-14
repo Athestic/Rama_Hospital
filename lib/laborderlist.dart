@@ -25,9 +25,10 @@ class _LaborderlistState extends State<Laborderlist> {
     _fetchLabOrders();
   }
 
-  // Fetch lab orders
+
   Future<void> _fetchLabOrders() async {
-    final apiUrl = '${AppConfig.apiUrl1}${AppConfig.getBillingByPatientIdEndpoint}?PatientId=${widget.patientId}';
+    final apiUrl =
+        '${AppConfig.apiUrl1}${AppConfig.getBillingByPatientIdEndpoint}?PatientId=${widget.patientId}';
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -35,9 +36,15 @@ class _LaborderlistState extends State<Laborderlist> {
       if (response.statusCode == 200) {
         List<dynamic> fetchedOrders = json.decode(response.body);
 
+        // Filter only items where itemFlag == "SER"
+        List<Map<String, dynamic>> serOrders = fetchedOrders
+            .where((order) => order['itemFlag'] == 'SER')
+            .cast<Map<String, dynamic>>()
+            .toList();
+
         // Group orders by bill_no
         Map<String, List<Map<String, dynamic>>> groupedOrders = {};
-        for (var order in fetchedOrders) {
+        for (var order in serOrders) {
           String billNo = order['bill_no'];
           if (!groupedOrders.containsKey(billNo)) {
             groupedOrders[billNo] = [];
@@ -54,20 +61,23 @@ class _LaborderlistState extends State<Laborderlist> {
             // Combine reference_reg_id and the latest bill_date
             String latestDate = orderList
                 .map((o) => o['bill_date'])
-                .reduce((a, b) => DateTime.parse(a).isAfter(DateTime.parse(b)) ? a : b);
+                .reduce((a, b) =>
+            DateTime.parse(a).isAfter(DateTime.parse(b)) ? a : b);
             return {
               'bill_no': billNo,
-              'reference_reg_id': orderList.map((o) => o['reference_reg_id']).toList(),
+              'reference_reg_id': orderList
+                  .map((o) => o['reference_reg_id'])
+                  .toList(),
               'latest_bill_date': latestDate
             };
           }).toList();
           _isLoading = false;
         });
       } else {
-        print('Failed to load pharmacy orders: ${response.statusCode}');
+        print('Failed to load billing orders: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching pharmacy orders: $e');
+      print('Error fetching billing orders: $e');
     }
   }
 

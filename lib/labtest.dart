@@ -5,8 +5,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app_config.dart';
+import 'package:global/Homepage.dart';
 
 class LabTestBooking extends StatefulWidget {
+
   @override
   _LabTestBookingState createState() => _LabTestBookingState();
 }
@@ -15,6 +17,7 @@ class _LabTestBookingState extends State<LabTestBooking> {
   List<Map<String, dynamic>> services = [];
   List<Map<String, dynamic>> filteredServices = [];
   List<Map<String, dynamic>> selectedServices = [];
+  DateTime selectedDate = DateTime.now();
 
   List<Map<String, dynamic>> doctors = [];
   Map<String, dynamic>? selectedDoctor;
@@ -22,6 +25,8 @@ class _LabTestBookingState extends State<LabTestBooking> {
   TextEditingController searchController = TextEditingController();
   ScrollController scrollController = ScrollController();
   String? patientId;
+  int? selectedDoctorId;
+
 
   @override
   void initState() {
@@ -78,14 +83,14 @@ class _LabTestBookingState extends State<LabTestBooking> {
   Future<void> fetchDoctors() async {
     try {
       final response = await http.get(
-        Uri.parse('${AppConfig.apiUrl1}${AppConfig.getDoctorDataEndpoint}'),  // Use API URL from AppConfig
+        Uri.parse('${AppConfig.apiUrl1}${AppConfig.getDoctorDataEndpoint}'),
       );
       if (response.statusCode == 200) {
         List<dynamic> data = jsonDecode(response.body);
-        Set<int> doctorIds = {}; // To track unique doctor IDs
+        Set<int> doctorIds = {};
+
         setState(() {
           doctors = data.where((doctor) {
-            // Only add if doctor_id is not already in the set
             if (!doctorIds.contains(doctor['doctor_id'])) {
               doctorIds.add(doctor['doctor_id']);
               return true;
@@ -115,10 +120,12 @@ class _LabTestBookingState extends State<LabTestBooking> {
     });
   }
 
+
   void addService(Map<String, dynamic> service) {
     setState(() {
       bool exists = selectedServices.any(
-              (selectedService) => selectedService['serviceName'] == service['serviceName']);
+            (selectedService) => selectedService['serviceName'] == service['serviceName'],
+      );
 
       if (!exists) {
         selectedServices.add({
@@ -129,9 +136,8 @@ class _LabTestBookingState extends State<LabTestBooking> {
       }
 
       searchController.clear();
-      filteredServices = []; // Clear filtered services after selection
+      filteredServices = [];
 
-      // Scroll to the bottom after adding a service
       WidgetsBinding.instance.addPostFrameCallback((_) {
         scrollController.animateTo(
           scrollController.position.maxScrollExtent,
@@ -141,6 +147,7 @@ class _LabTestBookingState extends State<LabTestBooking> {
       });
     });
   }
+
   double calculateTotalPrice() {
     return selectedServices.fold(0.0, (total, service) {
       return total + service['serviceUnitPrice'];
@@ -153,16 +160,18 @@ class _LabTestBookingState extends State<LabTestBooking> {
     });
   }
 
-  // Function to generate the updated payload for POST request
+// ✅ Generate POST payload with doctor_id
   Map<String, dynamic> generatePayload() {
     return {
       "ObjOpd": {
-        "patient_id": patientId,// Include the patient ID
-        "registration_date": "2024-10-14",
+        "patient_id": patientId,
+        "registration_date": selectedDate.toString().split(' ')[0], // 🛠️ Updated to use selectedDate
       },
-      "ObjOpdDetail": {}, // Add details here if needed
+      "ObjOpdDetail": {
+        "doctor_id": selectedDoctorId,
+      },
       "ObjBill": {
-        "patient_id": patientId, // Repeat the patient ID here as needed
+        "patient_id": patientId,
       },
       "ObjBillDetail": selectedServices.map((service) {
         return {
@@ -170,14 +179,20 @@ class _LabTestBookingState extends State<LabTestBooking> {
         };
       }).toList(),
       "ObjPayment": {
-        "paid_amount": calculateTotalPrice().toInt(), // Add the total payment amount
+        "paid_amount": calculateTotalPrice().toInt(),
       },
-      "ObjReport": [{}], // Populate ObjReport as needed
+      "ObjReport": [{}],
     };
   }
 
-
   Future<void> postSelectedServices() async {
+    if (selectedDoctorId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please select a doctor before submitting.')),
+      );
+      return;
+    }
+
     final url = '${AppConfig.apiUrl1}${AppConfig.addInvestigationEndpoint}';
     Map<String, dynamic> payload = generatePayload();
 
@@ -193,54 +208,63 @@ class _LabTestBookingState extends State<LabTestBooking> {
 
       if (response.statusCode == 200) {
         print('Data posted successfully');
-        //Display success dialog
         showDialog(
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
               title: Text('Success'),
-              content: Text('You have successfully Booked Labtest'),
+              content: Text('You have successfully booked a Lab Test.'),
               actions: [
                 TextButton(
                   onPressed: () {
-                    Navigator.of(context).pop(); // Close the dialog
+
+                    setState(() {
+                      selectedServices.clear();
+
+                    });
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => HomeScreen()),
+                          (route) => false, // Remove all previous routes
+                    );
+
                   },
                   child: Text('OK'),
                 ),
                 TextButton(
                   onPressed: () {
-                    Navigator.of(context).pop(); // Close the dialog
 
+                    Navigator.of(context).pop();
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => Laborderlist(patientId: patientId ?? 'default_patient_id'),
                       ),
                     );
-                    // Navigate to LabOrderList class
-                  },
+                    setState(() {
+                      selectedServices.clear();
+                      doctors.clear();
 
+                    });
+                  },
                   child: Text('Check Your Order? Click Here'),
                 ),
-
               ],
-
             );
           },
         );
       } else {
         print('Failed to post data');
-        // Show failure dialog
         showDialog(
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
               title: Text('Failed'),
-              content: Text('Sorry, failed to purchase medicines.'),
+              content: Text('Sorry, failed to book the lab test.'),
               actions: [
                 TextButton(
                   onPressed: () {
-                    Navigator.of(context).pop(); // Close the dialog
+                    Navigator.of(context).pop();
                   },
                   child: Text('OK'),
                 ),
@@ -251,17 +275,16 @@ class _LabTestBookingState extends State<LabTestBooking> {
       }
     } catch (e) {
       print('Error: $e');
-      // Show error dialog
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
             title: Text('Failed'),
-            content: Text('Sorry, failed to purchase medicines.'),
+            content: Text('Sorry, an error occurred while booking the test.'),
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.of(context).pop(); // Close the dialog
+                  Navigator.of(context).pop();
                 },
                 child: Text('OK'),
               ),
@@ -271,7 +294,6 @@ class _LabTestBookingState extends State<LabTestBooking> {
       );
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -315,31 +337,23 @@ class _LabTestBookingState extends State<LabTestBooking> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.black),
                 ),
-                child: DropdownButton<Map<String, dynamic>>(
+                child: DropdownButton<int>(
+                  value: selectedDoctorId,
+                  hint: Text('Select Doctor'),
                   isExpanded: true,
-                  hint: Text('Choose a Doctor'),
-                  value: selectedDoctor,
-                  icon: Icon(Icons.arrow_drop_down),
-                  underline: SizedBox(),
-                  items: doctors.map((doctor) {
-                    return DropdownMenuItem<Map<String, dynamic>>(
-                      value: doctor,
-                      child: Text(
-                        doctor['doctor_name'],
-                        style: TextStyle(
-                          // color: AppColors.primaryColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
+                  items: doctors.map<DropdownMenuItem<int>>((doctor) {
+                    return DropdownMenuItem<int>(
+                      value: doctor['doctor_id'],
+                      child: Text(doctor['doctor_name']),
                     );
                   }).toList(),
                   onChanged: (value) {
                     setState(() {
-                      selectedDoctor = value;
+                      selectedDoctorId = value;
                     });
                   },
                 ),
+
               ),
               SizedBox(height: 16),
 
@@ -449,14 +463,37 @@ class _LabTestBookingState extends State<LabTestBooking> {
                     children: [
                       Align(
                         alignment: Alignment.topRight,
-                        child: Text(
-                          'Date: ${DateTime.now().toString().split(' ')[0]}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
+                        child: InkWell(
+                          onTap: () async {
+                            DateTime? pickedDate = await showDatePicker(
+                              context: context,
+                              initialDate: selectedDate,
+                              firstDate: DateTime.now(), // You can allow only future dates
+                              lastDate: DateTime(2100),
+                            );
+                            if (pickedDate != null) {
+                              setState(() {
+                                selectedDate = pickedDate;
+                              });
+                            }
+                          },
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.calendar_today, size: 16, color: Colors.grey.shade600),
+                              SizedBox(width: 6),
+                              Text(
+                                'Date: ${selectedDate.toString().split(' ')[0]}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600, // Optional: make it look clickable
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
+
                       SizedBox(height: 8),
                       Text(
                         'Selected Services:',

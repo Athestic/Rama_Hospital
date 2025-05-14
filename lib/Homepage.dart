@@ -11,7 +11,6 @@ import 'patient_profile.dart';
 import 'package:flutter/material.dart';
 import 'PatientLogin.dart';
 import 'colors.dart';
-import 'patient_registration.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'getspecialization.dart';
 import 'dart:convert';
@@ -34,9 +33,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 1;
   String? patientId;
-  String? patientImage; // Store patient image
-  String? patientName = "Hello, User"; // Default patient name if not logged in
-
+  String? patientImage;
+  String? patientName = "Hello, User";
+  bool _isLoggedIn = false;
 
   // Method to get the correct widget based on the selected index
   Widget get _currentPage {
@@ -55,8 +54,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _checkLoginAndFetchPatientData(); // Fetch patient data if logged in
+    _checkLoginAndFetchPatientData();
     _getPatientId();
+
   }
 
   Future<void> _getPatientId() async {
@@ -65,24 +65,21 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {}); // Update the UI after fetching the patientId
   }
 
-  // Method to check login and fetch patient data
   Future<void> _checkLoginAndFetchPatientData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final patientId = prefs.getString('patientId');
     final token = prefs.getString('jwtToken');
 
-    if (patientId != null && token != null) {
-      // Patient is logged in, fetch patient data
-      await _fetchPatientData(patientId, token);
-    } else {
-      // Patient not logged in, set default values
-      setState(() {
-        patientImage = null; // No image, use default image
+    setState(() {
+      _isLoggedIn = (patientId != null && token != null);
+      if (_isLoggedIn) {
+        _fetchPatientData(patientId!, token!);
+      } else {
+        patientImage = null;
         patientName = "Hello, User";
-      });
-    }
+      }
+    });
   }
-
 
   Future<void> _fetchPatientData(String patientId, String token) async {
     try {
@@ -284,44 +281,41 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             )
                 : null,
-              drawer: Drawer(
-                width: isLandscape ? 250 : 270, // Adjust drawer width for landscape
-                child: Container(
-                  color: Colors.white,
-                  child: ListView(
-                    padding: EdgeInsets.zero,
-                    children: <Widget>[
-                      DrawerHeader(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            CircleAvatar(
-                              radius: isLandscape ? 30 : 40, // Adjust avatar size for landscape
-                              backgroundImage: patientImage != null
-                                  ? MemoryImage(base64Decode(patientImage!))
-                                  : AssetImage('assets/logo/person.jpeg') as ImageProvider,
+            drawer: Drawer(
+              width: isLandscape ? 250 : 270,
+              child: Container(
+                color: Colors.white,
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: <Widget>[
+                    // Drawer Header
+                    DrawerHeader(
+                      decoration: BoxDecoration(color: Colors.white),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CircleAvatar(
+                            radius: isLandscape ? 30 : 40,
+                            backgroundImage: patientImage != null
+                                ? MemoryImage(base64Decode(patientImage!))
+                                : AssetImage('assets/logo/person.jpeg') as ImageProvider,
+                          ),
+                          SizedBox(height: isLandscape ? 10 : 15),
+                          Text(
+                            patientName ?? 'Hello, User',
+                            style: TextStyle(
+                              color: AppColors.primaryColor,
+                              fontSize: isLandscape ? 16 : 15,
+                              fontWeight: FontWeight.bold,
                             ),
-                            SizedBox(height: isLandscape ? 10 : 15),
-                            Text(
-                              patientName ?? 'Hello, User',
-                              style: TextStyle(
-                                color: AppColors.primaryColor,
-                                fontSize: isLandscape ? 16 : 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
+                    ),
 
-
-              // My Account section
+                    // My Account Section (Always Visible)
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 4.0, horizontal: 6.0),
+                      padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 6.0),
                       child: Text(
                         'My Account',
                         style: TextStyle(
@@ -336,133 +330,115 @@ class _HomeScreenState extends State<HomeScreen> {
                       leading: Icon(Icons.person),
                       title: Text('Profile'),
                       onTap: () {
-                        Navigator.pop(context); // Close the drawer
+                        Navigator.pop(context);
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) =>
-                              PatientLogin()),
+                          MaterialPageRoute(builder: (context) => PatientLogin()),
                         );
                       },
                     ),
                     Divider(),
-                    // Second Section Header
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 1.0, horizontal: 3.0),
-                      child: Text(
-                        'My Services',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                          fontWeight: FontWeight.bold,
+
+                    // **Only Show My Services If User is Logged In**
+                    if (_isLoggedIn) ...[
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 1.0, horizontal: 3.0),
+                        child: Text(
+                          'My Services',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
-                    Divider(),
-                    ListTile(
-                      leading: Icon(Icons.calendar_today),
-                      title: Text('My Appointments'),
-                      onTap: () async {
-                        SharedPreferences prefs = await SharedPreferences
-                            .getInstance();
-                        final patientId = prefs.getString('patientId');
+                      Divider(),
+                      ListTile(
+                        leading: Icon(Icons.calendar_today),
+                        title: Text('My Appointments'),
+                        onTap: () async {
+                          SharedPreferences prefs = await SharedPreferences.getInstance();
+                          final patientId = prefs.getString('patientId');
 
-                        if (patientId != null) {
+                          if (patientId != null) {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) =>
+                                  BookingAppointmentPage(patientId: patientId)),
+                            );
+                          }
+                        },
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.health_and_safety),
+                        title: Text('My Health Records'),
+                        onTap: () async {
+                          SharedPreferences prefs = await SharedPreferences.getInstance();
+                          final patientId = prefs.getString('patientId');
+
+                          if (patientId != null) {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) =>
+                                  HealthRecordsScreen(patientId: patientId)),
+                            );
+                          }
+                        },
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.add_circle_outline),
+                        title: Text('Book an Appointment'),
+                        onTap: () {
                           Navigator.pop(context);
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) =>
-                                BookingAppointmentPage(patientId: patientId)),
+                            MaterialPageRoute(
+                                builder: (context) => SpecializationsScreen()),
                           );
-                        } else {
-                          _showLoginDialog(
-                              context); // Show login dialog if not logged in
-                        }
-                      },
-                    ),
+                        },
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.medical_information),
+                        title: Text('Pharmacy Order'),
+                        onTap: () async {
+                          SharedPreferences prefs = await SharedPreferences.getInstance();
+                          final patientId = prefs.getString('patientId');
 
-                    ListTile(
-                      leading: Icon(Icons.health_and_safety),
-                      title: Text('My Health Records'),
-                      onTap: () async {
-                        SharedPreferences prefs = await SharedPreferences
-                            .getInstance();
-                        final patientId = prefs.getString('patientId');
-                        final token = prefs.getString('jwtToken');
+                          if (patientId != null) {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) =>
+                                  PharmacyOrderList(patientId: patientId)),
+                            );
+                          }
+                        },
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.medical_information),
+                        title: Text('Lab Order'),
+                        onTap: () async {
+                          SharedPreferences prefs = await SharedPreferences.getInstance();
+                          final patientId = prefs.getString('patientId');
 
-                        if (patientId != null && token != null) {
-                          Navigator.pop(context); // Close the drawer
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) =>
-                                HealthRecordsScreen(patientId: patientId)),
-                          );
-                        } else {
-                          _showLoginDialog(context); // Show login dialog
-                        }
-                      },
-                    ),
-                    ListTile(
-                      leading: Icon(Icons.add_circle_outline),
-                      title: Text('Book an Appointment'),
-                      onTap: () {
-                        Navigator.pop(context); // Close the drawer
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => SpecializationsScreen()),
-                        );
-                      },
-                    ),
-                    ListTile(
-                      leading: Icon(Icons.medical_information),
-                      title: Text('Pharmacy Order'),
-                      onTap: () async {
-                        SharedPreferences prefs = await SharedPreferences
-                            .getInstance();
-                        final patientId = prefs.getString('patientId');
+                          if (patientId != null) {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) =>
+                                  Laborderlist(patientId: patientId)),
+                            );
+                          }
+                        },
+                      ),
+                    ],
 
-                        if (patientId != null) {
-                          Navigator.pop(context); // Close the drawer
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) =>
-                                PharmacyOrderList(patientId: patientId)),
-                          );
-                        } else {
-                          _showLoginDialog(
-                              context); // Show login dialog if not logged in
-                        }
-                      },
-                    ),
-
-                    ListTile(
-                      leading: Icon(Icons.medical_information),
-                      title: Text('Lab Order'),
-                      onTap: () async {
-                        SharedPreferences prefs = await SharedPreferences
-                            .getInstance();
-                        final patientId = prefs.getString('patientId');
-
-                        if (patientId != null) {
-                          Navigator.pop(context); // Close the drawer
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) =>
-                                Laborderlist(patientId: patientId)),
-                          );
-                        } else {
-                          _showLoginDialog(
-                              context); // Show login dialog if not logged in
-                        }
-                      },
-                    ),
-
+                    // **Other Information (Always Visible)**
                     Divider(),
-                    // Other Information section
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 4.0, horizontal: 6.0),
+                      padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 6.0),
                       child: Text(
                         'Other Information',
                         style: TextStyle(
@@ -483,7 +459,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       },
                     ),
-
                     ListTile(
                       leading: Icon(Icons.info_outline),
                       title: Text('About Us'),
@@ -500,50 +475,38 @@ class _HomeScreenState extends State<HomeScreen> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) =>
-                              TermsAndConditionsScreen()),
+                          MaterialPageRoute(builder: (context) => TermsAndConditionsScreen()),
                         );
                       },
                     ),
 
-                    Divider(),
-                    ListTile(
-                      leading: Icon(Icons.feedback_outlined),
-                      title: Text('Feedback'),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) =>
-                              FeedbackScreen()),
-                        );
-                      },
-                    ),
-                    ListTile(
-                      leading: Icon(Icons.question_answer),
-                      title: Text('FAQs'),
-                      onTap: () {},
-                    ),
-                    Divider(),
-                    ListTile(
-                      leading: Icon(Icons.logout),
-                      title: Text('Logout'),
-                      onTap: () async {
-                        // Clear shared preferences to log out the user
-                        SharedPreferences prefs = await SharedPreferences
-                            .getInstance();
-                        await prefs.clear();
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (context) =>
-                              PatientLogin()),
-                              (route) => false,
-                        );
-                      },
-                    ),
+                    // **Only Show Logout If User is Logged In**
+                    if (_isLoggedIn) ...[
+                      Divider(),
+                      ListTile(
+                        leading: Icon(Icons.logout),
+                        title: Text('Logout'),
+                        onTap: () async {
+                          SharedPreferences prefs = await SharedPreferences.getInstance();
+                          await prefs.clear();
+                          setState(() {
+                            _isLoggedIn = false;
+                            patientImage = null;
+                            patientName = "Hello, User";
+                          });
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (context) => PatientLogin()),
+                                (route) => false,
+                          );
+                        },
+                      ),
+                    ],
                   ],
                 ),
               ),
             ),
+
             body: _currentPage, // Display the selected page
             bottomNavigationBar: BottomNavigationBar(
               type: BottomNavigationBarType.fixed,
@@ -786,7 +749,7 @@ class _HomePageState extends State<HomePage> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(builder: (context) =>
-                                        PatientRegistrationForm2()),
+                                        PatientRegistrationForm1()),
                                   );
                                 },
                                 child: Text("Register",
@@ -901,7 +864,7 @@ class _HomePageState extends State<HomePage> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(builder: (context) =>
-                                        PatientRegistrationForm1()),
+                                        PatientRegistrationForm2()),
                                   );
                                 },
                                 child: Text("Register",
@@ -922,7 +885,11 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _navigateToScreen(Widget screen, {bool requiresLogin = true}) async {
+  void _navigateToScreen(
+      Widget screen, {
+        bool requiresLogin = true,
+        VoidCallback? onNotLoggedIn,
+      }) async {
     if (requiresLogin) {
       bool loggedIn = await _isLoggedIn();
       if (loggedIn) {
@@ -931,7 +898,11 @@ class _HomePageState extends State<HomePage> {
           MaterialPageRoute(builder: (context) => screen),
         );
       } else {
-        _showLoginRequiredDialog();
+        if (onNotLoggedIn != null) {
+          onNotLoggedIn(); // Call the specific dialog
+        } else {
+          _showLoginRequiredDialog(); // Default dialog
+        }
       }
     } else {
       Navigator.push(
@@ -940,6 +911,7 @@ class _HomePageState extends State<HomePage> {
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -988,8 +960,10 @@ class _HomePageState extends State<HomePage> {
                       imageAsset: 'assets/homeCon/img_1.png',
                       backgroundColor: Color(0xFFE0F7FA),
                       onPressedSubtitle: () {
-                        // Login required for Lab Test
-                        _navigateToScreen(LabTestBooking());
+                        _navigateToScreen(
+                          LabTestBooking(),
+                          onNotLoggedIn: _showLoginRequiredDialog1, // Use dialog 1
+                        );
                       },
                     ),
                   ],
@@ -1005,8 +979,10 @@ class _HomePageState extends State<HomePage> {
                       imageAsset: 'assets/homeCon/Capsule & Pill.png',
                       backgroundColor: Color(0xFFFFF3E0),
                       onPressedSubtitle: () {
-                        // Login required for Buy Medicines
-                        _navigateToScreen(MedicinePage());
+                        _navigateToScreen(
+                          MedicinePage(),
+                          onNotLoggedIn: _showLoginRequiredDialog, // Use dialog 2
+                        );
                       },
                     ),
                     SizedBox(width: 16.0),

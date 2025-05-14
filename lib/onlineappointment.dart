@@ -3,11 +3,6 @@ import 'package:table_calendar/table_calendar.dart';
 import 'dart:convert';
 import 'colors.dart';
 import 'doctor_list_screen.dart';
-import 'patient_registration.dart';
-import 'package:http/http.dart' as http;
-import 'jwt.dart';
-import 'package:url_launcher/url_launcher.dart';
-
 
 class DoctorDetailScreen extends StatefulWidget {
   final Doctor doctor;
@@ -37,108 +32,127 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
         final fontSize = screenWidth * 0.035;
         final buttonPadding = screenHeight * 0.015;
 
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20.0),
-          ),
-          child: Container(
-            width: dialogWidth,
-            padding: EdgeInsets.all(padding),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TableCalendar(
-                  focusedDay: _focusedDay,
-                  firstDay: DateTime.now(),
-                  lastDay: DateTime.now().add(Duration(days: 30)),
-                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                  onDaySelected: (selectedDay, focusedDay) {
-                    setState(() {
-                      _selectedDay = selectedDay;
-                      _focusedDay = focusedDay;
-                    });
-                  },
-                  calendarStyle: CalendarStyle(
-                    todayDecoration: BoxDecoration(
-                      color: Colors.tealAccent,
-                      shape: BoxShape.circle,
-                    ),
-                    selectedDecoration: BoxDecoration(
-                      color: Colors.teal,
-                      shape: BoxShape.circle,
-                    ),
-                    markersAlignment: Alignment.bottomCenter,
-                    cellMargin: EdgeInsets.all(screenWidth * 0.01),
-                  ),
-                ),
-                SizedBox(height: screenHeight * 0.02),
-                Text(
-                  'Select Time Slot',
-                  style: TextStyle(
-                    fontSize: fontSize,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.teal,
-                  ),
-                ),
-                SizedBox(height: screenHeight * 0.01),
-                Wrap(
-                  spacing: screenWidth * 0.02,
-                  runSpacing: screenHeight * 0.01,
-                  children: timeSlots.map((timeSlot) {
-                    return ChoiceChip(
-                      label: Text(
-                        timeSlot,
-                        style: TextStyle(fontSize: fontSize),
-                      ),
-                      selected: _selectedTimeSlot == timeSlot,
-                      onSelected: (isSelected) {
-                        setState(() {
-                          _selectedTimeSlot = isSelected ? timeSlot : null;
+        DateTime selectedDay = _selectedDay;
+        DateTime focusedDay = _focusedDay;
+        String? selectedSlot = _selectedTimeSlot;
+
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20.0),
+              ),
+              child: Container(
+                width: dialogWidth,
+                padding: EdgeInsets.all(padding),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TableCalendar(
+                      focusedDay: focusedDay,
+                      firstDay: DateTime.now(),
+                      lastDay: DateTime.now().add(Duration(days: 30)),
+                      selectedDayPredicate: (day) => isSameDay(selectedDay, day),
+                      onDaySelected: (newSelectedDay, newFocusedDay) {
+                        setStateDialog(() {
+                          selectedDay = newSelectedDay;
+                          focusedDay = newFocusedDay;
                         });
                       },
-                      selectedColor: Colors.teal,
-                      backgroundColor: Colors.teal.shade50,
-                      labelStyle: TextStyle(
-                        color: _selectedTimeSlot == timeSlot
-                            ? Colors.white
-                            : Colors.teal,
-                      ),
-                    );
-                  }).toList(),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (_selectedTimeSlot != null) {
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Please select a time slot'),
+                      calendarStyle: CalendarStyle(
+                        todayDecoration: BoxDecoration(
+                          color: Colors.tealAccent,
+                          shape: BoxShape.circle,
                         ),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.secondaryColor,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: screenWidth * 0.05,
-                      vertical: buttonPadding,
+                        selectedDecoration: BoxDecoration(
+                          color: Colors.teal,
+                          shape: BoxShape.circle,
+                        ),
+                        markersAlignment: Alignment.bottomCenter,
+                        cellMargin: EdgeInsets.all(screenWidth * 0.01),
+                      ),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                    SizedBox(height: screenHeight * 0.02),
+                    Text(
+                      'Select Time Slot',
+                      style: TextStyle(
+                        fontSize: fontSize,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.teal,
+                      ),
                     ),
-                  ),
-                  child: Text(
-                    'Confirm',
-                    style: TextStyle(
-                      fontSize: fontSize,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                    SizedBox(height: screenHeight * 0.01),
+                    Wrap(
+                      spacing: screenWidth * 0.02,
+                      runSpacing: screenHeight * 0.01,
+                      children: timeSlots.map((timeSlot) {
+                        return ChoiceChip(
+                          label: Text(
+                            timeSlot,
+                            style: TextStyle(fontSize: fontSize),
+                          ),
+                          selected: selectedSlot == timeSlot,
+                          onSelected: (isSelected) {
+                            setStateDialog(() {
+                              selectedSlot = isSelected ? timeSlot : null;
+                            });
+                          },
+                          selectedColor: Colors.teal,
+                          backgroundColor: Colors.teal.shade50,
+                          labelStyle: TextStyle(
+                            color: selectedSlot == timeSlot
+                                ? Colors.white
+                                : Colors.teal,
+                          ),
+                        );
+                      }).toList(),
                     ),
-                  ),
+                    SizedBox(height: screenHeight * 0.02),
+                    ElevatedButton(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text("Coming Soon"),
+                              content: Text("This feature will be available soon!"),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop(); // Close the dialog
+                                  },
+                                  child: Text("OK"),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.secondaryColor,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: screenWidth * 0.05,
+                          vertical: buttonPadding,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        'Confirm',
+                        style: TextStyle(
+                          fontSize: fontSize,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    )
+
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -380,20 +394,24 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
             ),
             SizedBox(height: 20),
             // Choose Slot Button
+            // Choose Slot Button
             Center(
               child: ElevatedButton(
                 onPressed: _showDateTimePickerDialog,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.secondaryColor,
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: screenWidth * 0.1,
+                    vertical: 14,
+                  ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
                 child: Text(
                   'Choose Slot',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: screenWidth * 0.045,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
@@ -406,3 +424,4 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
     );
   }
 }
+

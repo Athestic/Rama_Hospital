@@ -1,5 +1,5 @@
 class AppConfig {
-  static const String apiUrl1 = 'http://192.168.1.109:8081/api';
+  static const String apiUrl1 = 'https://ramahospital.co.in/AppAPI/api';
 
   // Patient Registration Endpoints
   static const String getStateEndpoint = '/HospitalApp/GetState';
@@ -14,6 +14,7 @@ class AppConfig {
 
   // Feedback Endpoints
   static const String patientFeedbackEndpoint = '/HospitalApp/HospitalAppFeedback';
+  static const String getHospitalAppFeedbackByPatientId = '/HospitalApp/GetHospitalAppFeedback';
 
   // Patient Details Endpoints
   static const String getPatientByIdEndpoint = '/HospitalApp/GetPatientById';
@@ -30,9 +31,8 @@ class AppConfig {
   static const String getServiceByBillNoEndpoint = '/Pharma/GetServiceByBillNo';
   static const String getDoctorDataEndpoint = '/HospitalApp/GetDoctorData';
 
-  // Patient Details Endpoints
-  static const String getIpidWithImageEndpoint = '/HospitalApp/GetIpidWithImeage';
-  static const String getOpdByPatientIdEndpoint = '/HospitalApp/GetOpdByPatientId';
+  // Patient Reports
+  static const String getPatientReportPdfEndpoint = '/HospitalApp/GetPatientReportPdf';
   static const String getPatientReportByIPIDEndpoint = '/HospitalApp/GetPatientReportByIPID';
   static const String getPatientReportByOPDEndpoint = '/HospitalApp/GetPatientReportByOPD';
 
@@ -49,6 +49,7 @@ class AppConfig {
 
   // New Endpoint for Fetching Pharmacy Orders by Patient ID
   static const String getRequisitionByPatientIdEndpoint = '/Pharma/GetRequisitionByPatientId';
+  static const String getRequisitionDetailsByIdEndpoint = '/Pharma/GetRequisitionDetailsById';
 
   // New Endpoint for Fetching Patient Details by ID
   static const String getPatientDetailsByIdEndpoint = '/HospitalApp/GetPatientById';
@@ -58,6 +59,7 @@ class AppConfig {
 
   // New Patient Registration App Endpoint
   static const String patientRegistrationAppEndpoint = '/HospitalApp/PatientRegistrationApp';
+
 
 
 }

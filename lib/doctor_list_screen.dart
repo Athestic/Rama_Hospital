@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'onlineappointment.dart';
 import 'inpersonvisit.dart';
 import 'app_config.dart';
+import 'package:lottie/lottie.dart';
 
 class Doctor {
   final String doctorName;
@@ -14,6 +15,7 @@ class Doctor {
   final String? qualification;
   final String fromDate;
   final String toDate;
+  final String Descrp;
   final int todayOpd;
   final String? doctorImg;
   final String? experience;
@@ -26,6 +28,7 @@ class Doctor {
     required this.qualification,
     required this.fromDate,
     required this.toDate,
+    required this.Descrp,
     required this.todayOpd,
     required this.doctorImg,
     required this.experience,
@@ -39,6 +42,8 @@ class Doctor {
       consultationFee: (json['consultation_fee'] ?? 0).toDouble(),
       qualification: json['qualification'] ?? '',
       fromDate: json['from_date'] ?? '',
+      Descrp: json['doctorDescrp'] ?? '',
+
       toDate: json['to_date'] ?? '',
       todayOpd: json['todayOpd'] ?? 0,
       doctorImg: json['doctor_image']?.toString(),
@@ -55,25 +60,26 @@ class GlobalDoctorData {
   String? doctorName;
   String? doctorImg;
   String? experience;
+  String? Descrp;
   int? unitId;
   int? doctorId;
-
   double? consultationFee;
 
   void setDoctorDetails(Doctor doctor) {
     doctorName = doctor.doctorName;
     doctorImg = doctor.doctorImg;
     experience = doctor.experience;
+    Descrp = doctor.Descrp;
+
     unitId = doctor.unitId;
     doctorId = doctor.doctorId;
     consultationFee = doctor.consultationFee;
   }
 }
 
-class DoctorsScreen extends StatelessWidget {
+class DoctorsScreen extends StatefulWidget {
   final int specializationId;
   final String specializationName;
-
   final Future<List<Doctor>> fetchDoctors;
 
   DoctorsScreen({
@@ -81,6 +87,51 @@ class DoctorsScreen extends StatelessWidget {
     required this.specializationName,
     required this.fetchDoctors,
   });
+
+  @override
+  _DoctorsScreenState createState() => _DoctorsScreenState();
+}
+
+class _DoctorsScreenState extends State<DoctorsScreen> {
+  List<Doctor> allDoctors = [];
+  List<Doctor> filteredDoctors = [];
+  TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  bool isLoading = true;
+  String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.fetchDoctors.then((doctors) {
+      // Print each doctor's description
+      for (var doc in doctors) {
+        print("Doctor: ${doc.doctorName}, Description: ${doc.Descrp}");
+      }
+
+      setState(() {
+        allDoctors = doctors;
+        filteredDoctors = doctors;
+        isLoading = false;
+      });
+    }).catchError((e) {
+      setState(() {
+        error = e.toString();
+        isLoading = false;
+      });
+    });
+
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+        filteredDoctors = allDoctors
+            .where((doctor) =>
+            doctor.doctorName.toLowerCase().contains(_searchQuery))
+            .toList();
+      });
+    });
+  }
+
 
   void storeDoctorDetailsGlobally(Doctor doctor) {
     GlobalDoctorData().setDoctorDetails(doctor);
@@ -91,7 +142,7 @@ class DoctorsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-         'Choose Your Doctor',
+          'Choose Your Doctor',
           style: TextStyle(
             color: AppColors.primaryColor,
             fontFamily: 'Poppins',
@@ -108,6 +159,7 @@ class DoctorsScreen extends StatelessWidget {
               height: 45.0,
               width: double.infinity,
               child: TextField(
+                controller: _searchController,
                 decoration: InputDecoration(
                   prefixIcon: Icon(Icons.search),
                   hintText: 'Search for Doctors',
@@ -119,263 +171,304 @@ class DoctorsScreen extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: FutureBuilder<List<Doctor>>(
-              future: fetchDoctors,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(child: Text('No doctors found'));
+            child: isLoading
+                ? Center(child: CircularProgressIndicator())
+                : error != null
+                ? Center(child: Text('Error: $error'))
+                : filteredDoctors.isEmpty
+                ? Center(child: Text('No doctors found'))
+                : ListView.builder(
+              itemCount: filteredDoctors.length,
+              itemBuilder: (context, index) {
+                Doctor doctor = filteredDoctors[index];
+
+                Widget doctorImage;
+                if (doctor.doctorImg != null) {
+                  if (doctor.doctorImg!.startsWith('http')) {
+                    doctorImage = Image.network(
+                      doctor.doctorImg!,
+                      width: 120,
+                      height: 140,
+                      fit: BoxFit.cover,
+                    );
+                  } else {
+                    doctorImage = Image.memory(
+                      base64Decode(doctor.doctorImg!),
+                      width: 120,
+                      height: 140,
+                      fit: BoxFit.cover,
+                    );
+                  }
                 } else {
-                  return ListView.builder(
-                    itemCount: snapshot.data!.length,
-                    itemBuilder: (context, index) {
-                      Doctor doctor = snapshot.data![index];
+                  doctorImage = Icon(Icons.person, size: 80);
+                }
 
-                      Widget doctorImage;
-                      if (doctor.doctorImg != null) {
-                        if (doctor.doctorImg!.startsWith('http')) {
-                          doctorImage = Image.network(
-                            doctor.doctorImg!,
-                            width: 120,
-                            height: 140,
-                            fit: BoxFit.cover,
-                          );
-                        } else {
-                          doctorImage = Image.memory(
-                            base64Decode(doctor.doctorImg!),
-                            width: 120,
-                            height: 140,
-                            fit: BoxFit.cover,
-                          );
-                        }
-                      } else {
-                        doctorImage = Icon(Icons.person, size: 80);
-                      }
-
-                      return Card(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(15.0),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                return Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(15.0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment:
+                            CrossAxisAlignment.start,
                             children: [
-
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              Row(
+                                mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    flex: 3,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                      CrossAxisAlignment.start,
                                       children: [
-
-                                        Expanded(
-                                          flex: 3,
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                        Text(
+                                          'Dr. ${doctor.doctorName}',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight:
+                                            FontWeight.bold,
+                                            fontFamily: 'Poppins',
+                                          ),
+                                          overflow:
+                                          TextOverflow.ellipsis,
+                                        ),
+                                        SizedBox(height: 5),
+                                        Text(
+                                          widget.specializationName,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey,
+                                            fontWeight:
+                                            FontWeight.w600,
+                                          ),
+                                          overflow:
+                                          TextOverflow.ellipsis,
+                                        ),
+                                        SizedBox(height: 5),
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            border: Border.all(
+                                              color: Colors.green,
+                                              width: 1.0,
+                                            ),
+                                            borderRadius:
+                                            BorderRadius
+                                                .circular(10),
+                                          ),
+                                          padding:
+                                          EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4),
+                                          child: Text(
+                                            '${doctor.experience!} ',
+                                            style: TextStyle(
+                                              color: Colors.green,
+                                              fontSize: 12,
+                                              fontWeight:
+                                              FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                      CrossAxisAlignment.end,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment:
+                                          MainAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              '4/5',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight:
+                                                FontWeight.w500,
+                                              ),
+                                            ),
+                                            SizedBox(width: 8),
+                                            Icon(
+                                              Icons.star,
+                                              color: Colors.amber,
+                                              size: 16,
+                                            ),
+                                          ],
+                                        ),
+                                        SizedBox(height: 10),
+                                        RichText(
+                                          textAlign:
+                                          TextAlign.right,
+                                          text: TextSpan(
                                             children: [
-                                              Text(
-
-                                                'Dr. ${doctor.doctorName} ',
+                                              TextSpan(
+                                                text:
+                                                'Availability\n',
                                                 style: TextStyle(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontFamily: 'Poppins',
+                                                  fontSize: 12,
+                                                  color:
+                                                  Colors.black,
+                                                  fontWeight:
+                                                  FontWeight
+                                                      .w500,
                                                 ),
-                                                overflow: TextOverflow.ellipsis,
                                               ),
-                                              SizedBox(height: 5),
-                                              Text(
-                                                specializationName,
+                                              TextSpan(
+                                                text:
+                                                'Mon, Tue, Fri',
                                                 style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.grey,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                              SizedBox(height: 5),
-                                              // Experience
-                                              Container(
-                                                decoration: BoxDecoration(
-                                                  border: Border.all(
-                                                    color: Colors.green,
-                                                    width: 1.0,
-                                                  ),
-                                                  borderRadius: BorderRadius.circular(10),
-                                                ),
-                                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                child: Text(
-                                                  '${doctor.experience!} yrs',
-                                                  style: TextStyle(
-                                                    color: Colors.green,
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
+                                                  fontSize: 12,
+                                                  color:
+                                                  Colors.blue,
+                                                  fontWeight:
+                                                  FontWeight
+                                                      .bold,
                                                 ),
                                               ),
                                             ],
                                           ),
                                         ),
-
-                                        Padding(
-                                          padding: const EdgeInsets.only(right: 15.0),
-                                          child: Expanded(
-                                            flex: 2,
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.end,
-                                              children: [
-                                                Row(
-                                                  mainAxisAlignment: MainAxisAlignment.end,
-                                                  children: [
-                                                    Text(
-                                                      '4/5',
-                                                      style: TextStyle(
-                                                        fontSize: 14,
-                                                        fontWeight: FontWeight.w500,
-                                                      ),
-                                                    ),
-                                                    SizedBox(width: 4),
-                                                    Icon(
-                                                      Icons.star,
-                                                      color: Colors.amber,
-                                                      size: 16,
-                                                    ),
-                                                  ],
-                                                ),
-                                                SizedBox(height: 10),
-                                                RichText(
-                                                  textAlign: TextAlign.right,
-                                                  text: TextSpan(
-                                                    children: [
-                                                      TextSpan(
-                                                        text: 'Availability\n',
-                                                        style: TextStyle(
-                                                          fontSize: 12,
-                                                          color: Colors.black,
-                                                          fontWeight: FontWeight.w500,
-                                                        ),
-                                                      ),
-                                                      TextSpan(
-                                                        text: 'Mon, Tue, Fri',
-                                                        style: TextStyle(
-                                                          fontSize: 12,
-                                                          color: Colors.blue,
-                                                          fontWeight: FontWeight.bold,
-                                                        ),
-                                                      ),
-                                                    ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                        right: 5.0),
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        storeDoctorDetailsGlobally(
+                                            doctor);
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                DoctorDetailScreeninpersonvisit(
+                                                    doctor: doctor),
+                                          ),
+                                        );
+                                      },
+                                      style:
+                                      ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                        AppColors.primaryColor,
+                                        shape:
+                                        RoundedRectangleBorder(
+                                          borderRadius:
+                                          BorderRadius.circular(
+                                              5),
+                                        ),
+                                        padding:
+                                        EdgeInsets.symmetric(
+                                            horizontal: 9,
+                                            vertical: 2),
+                                      ),
+                                      child: Text(
+                                        'Hospital Visit',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.white,
+                                          fontWeight:
+                                          FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 8.0),
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return AlertDialog(
+                                              content: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Lottie.asset(
+                                                    'assets/video_animation.json', // Replace with your Lottie file path or URL
+                                                    width: 100,
+                                                    height: 100,
+                                                    fit: BoxFit.cover,
                                                   ),
+                                                  SizedBox(height: 10),
+                                                  Text(
+                                                    'We’re excited to be expanding our services — exciting updates are on the way, so stay tuned and connected with us!',
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                ],
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  child: Text('OK'),
+                                                  onPressed: () {
+                                                    Navigator.of(context).pop();
+                                                  },
                                                 ),
                                               ],
-                                            ),
-                                          ),
+                                            );
+                                          },
+                                        );
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.secondaryColor,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(5),
                                         ),
-                                      ],
+                                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      ),
+                                      child: Text(
+                                        'Video Consult',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
                                     ),
-                                    SizedBox(height: 10),
-
-                                    Row(
-                                      children: [
-                                        Padding(
-                                          padding: const EdgeInsets.only(right: 4.0),
-                                          child: ElevatedButton(
-                                            onPressed: () {
-                                              storeDoctorDetailsGlobally(doctor);
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) => DoctorDetailScreeninpersonvisit(
-                                                    doctor: doctor
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: AppColors.primaryColor,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(5),
-                                              ),
-                                              padding: EdgeInsets.symmetric(horizontal: 9, vertical: 2),
-                                            ),
-                                            child: Text(
-                                              'Hospital Visit',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.only(left: 4.0),
-                                          child: ElevatedButton(
-                                            onPressed: () {
-                                              storeDoctorDetailsGlobally(doctor);
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) => DoctorDetailScreen(doctor: doctor),
-                                                ),
-                                              );
-                                            },
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: AppColors.secondaryColor,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(5),
-                                              ),
-                                              padding: EdgeInsets.symmetric(horizontal: 9, vertical: 2),
-                                            ),
-                                            child: Text(
-                                              'Video Consult',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-
-
-
-                                  ],
-                                ),
+                                  )
+                                ],
                               ),
-                              Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color:AppColors.secondaryColor,
-                                    width: 2.0,
-                                  ),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: SizedBox(
-                                    width: 120,
-                                    height: 125,
-                                    child: doctorImage,
-                                  ),
-                                ),
-                              ),
-
                             ],
                           ),
                         ),
-                      );
-
-                    },
-                  );
-                }
+                        SizedBox(width: 12), // Space between text and image
+                        Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: AppColors.secondaryColor,
+                              width: 2.0,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: SizedBox(
+                              width: 120,
+                              height: 125,
+                              child: doctorImage,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
               },
             ),
           ),
@@ -384,7 +477,8 @@ class DoctorsScreen extends StatelessWidget {
     );
   }
 }
-Future<List<Doctor>> fetchDoctorsBySpecialization(int specializationId) async {
+
+  Future<List<Doctor>> fetchDoctorsBySpecialization(int specializationId) async {
   final uri = Uri.parse(
     '${AppConfig.apiUrl1}${AppConfig.getUnitDetailsEndpoint}?specId=$specializationId',
   );

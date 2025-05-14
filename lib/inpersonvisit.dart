@@ -21,36 +21,37 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreeninpersonvisit> {
   @override
   void initState() {
     super.initState();
-    loadAvailability();
+    print('Doctor Description: ${widget.doctor.Descrp}');
+    // loadAvailability();
   }
 
-  void loadAvailability() async {
-    try {
-      final data = await fetchDoctorAvailability(widget.doctor.doctorId);
-      setState(() {
-        availability = data;
-      });
-    } catch (e) {
-      print('Error fetching availability: $e');
-    }
-  }
+  // void loadAvailability() async {
+  //   try {
+  //     final data = await fetchDoctorAvailability(widget.doctor.doctorId);
+  //     setState(() {
+  //       availability = data;
+  //     });
+  //   } catch (e) {
+  //     print('Error fetching availability: $e');
+  //   }
+  // }
 
-  Future<Map<String, dynamic>> fetchDoctorAvailability(int doctorId) async {
-    final response = await http.get(
-      Uri.parse('http://192.168.1.188:8083/api/Patient/GetDoctorAvailability'),
-    );
-
-    if (response.statusCode == 200) {
-      final jsonResponse = jsonDecode(response.body);
-      if (jsonResponse is List && jsonResponse.isNotEmpty) {
-        return jsonResponse[0];
-      } else {
-        throw Exception('Doctor availability data is empty');
-      }
-    } else {
-      throw Exception('Failed to load doctor availability');
-    }
-  }
+  // Future<Map<String, dynamic>> fetchDoctorAvailability(int doctorId) async {
+  //   final response = await http.get(
+  //     Uri.parse('http://192.168.1.188:8083/api/Patient/GetDoctorAvailability'),
+  //   );
+  //
+  //   if (response.statusCode == 200) {
+  //     final jsonResponse = jsonDecode(response.body);
+  //     if (jsonResponse is List && jsonResponse.isNotEmpty) {
+  //       return jsonResponse[0];
+  //     } else {
+  //       throw Exception('Doctor availability data is empty');
+  //     }
+  //   } else {
+  //     throw Exception('Failed to load doctor availability');
+  //   }
+  // }
 
   void _showSlotSelectionBottomSheet(BuildContext context) {
     showModalBottomSheet(
@@ -128,7 +129,7 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreeninpersonvisit> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Total Exp - ${widget.doctor.experience} yrs',
+                          'Total Exp - ${widget.doctor.experience} ',
                           style: TextStyle(
                             fontSize: 16.0,
                             fontWeight: FontWeight.bold,
@@ -200,7 +201,7 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreeninpersonvisit> {
                 children: [
                   Center(
                     child: Text(
-                      'Special Cases',
+                      'Qualification',
                       style: TextStyle(
                         fontSize: 18.0,
                         fontWeight: FontWeight.bold,
@@ -211,14 +212,16 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreeninpersonvisit> {
                   SizedBox(height: 16.0),
                   Container(
                     padding: EdgeInsets.symmetric(
-                      vertical: 4.0,
                       horizontal: 16.0,
                     ),
                     width: double.infinity,
                     child: Text(
-                      'Best Cardiologist Award by the Indian Medical Association, 2018\n'
-                          'Young Investigator Award at the European Society of Cardiology Congress, 2017',
-                      style: TextStyle(fontSize: 16.0),
+                      '${widget.doctor.qualification}',
+                      style: TextStyle(
+                        fontSize: 16.0,
+                        height: 1.5,
+                      ),
+                      textAlign: TextAlign.justify,
                     ),
                   ),
                 ],
@@ -247,21 +250,19 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreeninpersonvisit> {
                   SizedBox(height: 16.0),
                   Container(
                     padding: EdgeInsets.symmetric(
+                      vertical: 4.0,
                       horizontal: 16.0,
                     ),
                     width: double.infinity,
                     child: Text(
-                      'Our doctor is a highly skilled and compassionate Cardiologist with over 15 years of experience...',
-                      style: TextStyle(
-                        fontSize: 16.0,
-                        height: 1.5,
-                      ),
-                      textAlign: TextAlign.justify,
+                      '${widget.doctor.Descrp}',
+                      style: TextStyle(fontSize: 16.0,color: Colors.black),
                     ),
                   ),
                 ],
               ),
             ),
+
             SizedBox(height: 16.0),
             Center(
               child: ElevatedButton(
