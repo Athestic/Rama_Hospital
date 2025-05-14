@@ -74,8 +74,9 @@ class _PharmacyOrderListState extends State<PharmacyOrderList> {
   Future<void> _fetchOrderDetails(int orderId) async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.1.144:8081/api/Pharma/GetRequisitionDetailsById?MedicineReqId=$orderId'),
+        Uri.parse('${AppConfig.apiUrl1}${AppConfig.getRequisitionDetailsByIdEndpoint}?MedicineReqId=$orderId'),
       );
+
 
       if (response.statusCode == 200) {
         // Decode the response JSON

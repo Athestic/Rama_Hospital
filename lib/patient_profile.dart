@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:global/Homepage.dart';
 import 'package:global/colors.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -260,7 +261,8 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
-            Navigator.pop(context);
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => HomeScreen()));
           },
         ),
       ),

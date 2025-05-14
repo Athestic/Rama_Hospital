@@ -43,8 +43,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   }
 
   Future<void> _fetchFeedback() async {
-    final String apiUrl =
-        'http://192.168.1.144:8081/api/HospitalApp/GetHospitalAppFeedback?PatientID=$patientId';
+    String apiUrl = '${AppConfig.apiUrl1}${AppConfig.getHospitalAppFeedbackByPatientId}?PatientID=$patientId';
 
     try {
       final response = await http.get(Uri.parse(apiUrl));

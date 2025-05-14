@@ -1,0 +1,2 @@
+/Users/ramagroup/StudioProjects/bottom_navigation/android/app/.cxx/Debug/149d5u2g/arm64-v8a/CMakeFiles/edit_cache.dir
+/Users/ramagroup/StudioProjects/bottom_navigation/android/app/.cxx/Debug/149d5u2g/arm64-v8a/CMakeFiles/rebuild_cache.dir

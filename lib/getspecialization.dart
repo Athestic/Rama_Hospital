@@ -5,6 +5,13 @@ import 'package:global/colors.dart';
 import 'package:http/http.dart' as http;
 import 'doctor_list_screen.dart';
 import 'app_config.dart';
+
+// Global Selected Specialization Holder
+class SelectedSpecialization {
+  static String? specializationName;
+  static int? specializationId;
+}
+
 class SpecializationsScreen extends StatefulWidget {
   @override
   _SpecializationsScreenState createState() => _SpecializationsScreenState();
@@ -106,6 +113,11 @@ class _SpecializationsScreenState extends State<SpecializationsScreen> {
 
                           return GestureDetector(
                             onTap: () {
+                              // Save the selected specialization globally
+                              SelectedSpecialization.specializationName = specialization.specialization;
+                              SelectedSpecialization.specializationId = specialization.specializationId;
+
+                              // Then navigate to the doctors screen
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -114,7 +126,6 @@ class _SpecializationsScreenState extends State<SpecializationsScreen> {
                                     specializationName: specialization.specialization,
                                     fetchDoctors: fetchDoctorsBySpecialization(specialization.specializationId),
                                   ),
-
                                 ),
                               );
                             },

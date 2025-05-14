@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:global/Homepage.dart';
 import 'package:global/colors.dart';
 import 'package:global/pharmaorderlist.dart';
 import 'dart:convert';
@@ -8,6 +9,7 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
+import 'app_config.dart';
 
 class MedicinePage extends StatefulWidget
 {
@@ -25,6 +27,9 @@ class _MedicinePageState extends State<MedicinePage> {
   String? patientId;
   File? prescriptionFile;
   bool _isButtonEnabled = true;
+  bool isMedicineSelected = false;
+
+
   final ImagePicker _imagePicker = ImagePicker();
 
 
@@ -45,28 +50,28 @@ class _MedicinePageState extends State<MedicinePage> {
     patientId = prefs.getString('patientId');
   }
 
+
   Future<void> fetchMedicines() async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.1.144:8081/api/Pharma/GetPharmaItems'),
+        Uri.parse('${AppConfig.apiUrl1}${AppConfig.getPharmaItemsEndpoint}'),
       );
+
 
       if (response.statusCode == 200) {
         List<dynamic> data = jsonDecode(response.body);
 
         setState(() {
-          medicines = data.map((item) {
+          medicines = data.where((item) => item['item_name'] != null).map((item) {
             String fullName = item['item_name'];
-            // Extract medicine name before the first occurrence of "1*" or similar pattern
             String medicineName = fullName.split(RegExp(r'\s\d+\*'))[0].trim();
 
             String cost = '';
             if (fullName.contains('\$') && fullName.contains('^')) {
               cost = fullName.split('\$')[1].split('^')[0].trim();
-              // Round up the cost to the nearest whole number
               if (cost.isNotEmpty) {
-                double costValue = double.parse(cost);
-                cost = costValue.ceil().toString(); // Round up and convert back to string
+                double costValue = double.tryParse(cost) ?? 0;
+                cost = costValue.ceil().toString();
               }
             }
 
@@ -74,8 +79,9 @@ class _MedicinePageState extends State<MedicinePage> {
             if (fullName.contains('^') && fullName.contains(')')) {
               expiryDate = fullName.split('^')[1].split(')')[0].trim();
             }
-            String itemCode = item['itemCode'];
-            String itemGroupName = item['itemGroupName'];
+
+            String itemCode = item['itemCode'] ?? '';
+            String itemGroupName = item['itemGroupName'] ?? '';
 
             return {
               'name': medicineName,
@@ -88,6 +94,7 @@ class _MedicinePageState extends State<MedicinePage> {
 
           filteredMedicines = [];
         });
+
       } else {
         print('Failed to load medicines: ${response.statusCode}');
       }
@@ -235,7 +242,7 @@ class _MedicinePageState extends State<MedicinePage> {
   }
 
   Future<void> postSelectedMedicines() async {
-    final url = 'http://192.168.1.144:8081/Api/Pharma/AddPharmaItems';
+    final url = '${AppConfig.apiUrl1}${AppConfig.addPharmaItemsEndpoint}';
     setState(() {
       _isButtonEnabled = false; // Disable the button
     });
@@ -275,7 +282,6 @@ class _MedicinePageState extends State<MedicinePage> {
 
       if (response.statusCode == 200) {
         print('Data posted successfully');
-
         showDialog(
           context: context,
           builder: (BuildContext context) {
@@ -285,11 +291,18 @@ class _MedicinePageState extends State<MedicinePage> {
               actions: [
                 TextButton(
                   onPressed: () {
+                    // Clear state
                     setState(() {
                       selectedMedicines.clear();
-                      prescriptionFile = null;  // Clear the prescription image
+                      prescriptionFile = null; // Clear the prescription image
                     });
-                    Navigator.of(context).pop();
+
+                    // Navigate to HomePage and remove all previous routes
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => HomeScreen()),
+                          (route) => false, // Remove all previous routes
+                    );
                   },
                   child: Text('OK'),
                 ),
@@ -298,13 +311,15 @@ class _MedicinePageState extends State<MedicinePage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            PharmacyOrderList(patientId: patientId ?? 'default_patient_id'),
+                        builder: (context) => PharmacyOrderList(
+                          patientId: patientId ?? 'default_patient_id',
+                        ),
                       ),
                     );
+
                     setState(() {
                       selectedMedicines.clear();
-                      prescriptionFile = null;  // Clear the prescription image
+                      prescriptionFile = null; // Clear the prescription image
                     });
                   },
                   child: Text('Check Your Order? Click Here'),
@@ -313,6 +328,7 @@ class _MedicinePageState extends State<MedicinePage> {
             );
           },
         );
+
       } else {
         print('Failed to post data: ${response.reasonPhrase}');
 
@@ -486,64 +502,65 @@ class _MedicinePageState extends State<MedicinePage> {
                       ),
                     ) :
                     SizedBox(height: screenHeight * 0.02),
-                    // Prescription Upload Section
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        vertical: screenHeight * 0.01,
-                        horizontal: screenWidth * 0.03,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.2),
-                            spreadRadius: 1,
-                            blurRadius: 5,
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            backgroundImage: AssetImage('assets/icon/pres.jpg'),
-                            radius: screenWidth * 0.05,
-                          ),
-                          SizedBox(width: screenWidth * 0.02),
-                          Expanded(
-                            child: Text(
-                              'Order By Prescription',
-                              style: TextStyle(
-                                fontSize: 15,
-                                // fontWeight: FontWeight.bold,
-                                fontFamily: 'Poppins',
-                              ),
-                            ),
-                          ),
-                          ElevatedButton(
-                            onPressed: pickPrescriptionFile,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryColor,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 8),
-                              minimumSize: Size(0, 0),
-                            ),
+                    // // Prescription Upload Section
+                    // if (prescriptionFile == null && selectedMedicines.isEmpty)
+                    //   Container(
+                    //     padding: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                    //     decoration: BoxDecoration(
+                    //       color: Colors.white,
+                    //       borderRadius: BorderRadius.circular(12),
+                    //       boxShadow: [
+                    //         BoxShadow(
+                    //           color: Colors.grey.withOpacity(0.2),
+                    //           spreadRadius: 1,
+                    //           blurRadius: 5,
+                    //         ),
+                    //       ],
+                    //     ),
+                    //     child: Column(
+                    //       children: [
+                    //         Row(
+                    //           children: [
+                    //             CircleAvatar(
+                    //               backgroundImage: AssetImage('assets/icon/pres.jpg'),
+                    //               radius: 25,
+                    //             ),
+                    //             SizedBox(width: 8),
+                    //             Expanded(
+                    //               child: Text(
+                    //                 'Attached by Prescription',
+                    //                 style: TextStyle(
+                    //                   fontSize: 15,
+                    //                   fontFamily: 'Poppins',
+                    //                 ),
+                    //               ),
+                    //             ),
+                    //             ElevatedButton(
+                    //               onPressed: pickPrescriptionFile,
+                    //               style: ElevatedButton.styleFrom(
+                    //                 backgroundColor: AppColors.primaryColor,
+                    //                 shape: RoundedRectangleBorder(
+                    //                   borderRadius: BorderRadius.circular(8),
+                    //                 ),
+                    //                 padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    //                 minimumSize: Size(0, 0),
+                    //               ),
+                    //               child: Text(
+                    //                 'Upload',
+                    //                 style: TextStyle(
+                    //                   color: Colors.white,
+                    //                   fontSize: 15,
+                    //                   fontWeight: FontWeight.bold,
+                    //                 ),
+                    //               ),
+                    //             ),
+                    //           ],
+                    //         ),
+                    //       ],
+                    //     ),
+                    //   ),
 
-                            child: Text(
-                              'Upload',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+
                     SizedBox(height: 20),
                     selectedMedicines.isNotEmpty
                         ? Container(
@@ -703,10 +720,26 @@ class _MedicinePageState extends State<MedicinePage> {
                                       ),
                                     ],
                                   ),
+
+
                                 ],
                               ),
                             );
                           }).toList(),
+                          SizedBox(height: screenHeight * 0.02),
+                          Row(
+                            children: [
+                              Text(
+                                'Total Amount: ₹${calculateTotalPrice().toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+
+                            ],
+                          ),
                           SizedBox(height: screenHeight * 0.02),
                           GestureDetector(
                             onTap: () {
@@ -723,98 +756,92 @@ class _MedicinePageState extends State<MedicinePage> {
                             ),
                           ),
                           SizedBox(height: screenHeight * 0.02),
-                          // Prescription Upload Section
-                          Container(
-                            padding: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.2),
-                                  spreadRadius: 1,
-                                  blurRadius: 5,
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              children: [
-                                Row(
-                                  children: [
-                                    CircleAvatar(
-                                      backgroundImage: AssetImage('assets/icon/pres.jpg'),
-                                      radius: 25,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        'Attached by Prescription',
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          // fontWeight: FontWeight.bold,
-                                          fontFamily: 'Poppins',
-                                        ),
-                                      ),
-                                    ),
-                                    ElevatedButton(
-                                      onPressed: pickPrescriptionFile,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.primaryColor,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 10, vertical: 8),
-                                        minimumSize: Size(0, 0),
-                                      ),
-                                      child: Text(
-                                        'Upload',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(height: 20,),
-                          Row(
-                            children: [
-                              Text(
-                                'Don\'t have prescription',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(width: 50),
-                              GestureDetector(
-                                onTap: _callPhoneNumber,
-                                child: Text(
-                                  ' Call Now',
-                                  style: TextStyle(
-                                    color: AppColors.secondaryColor,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
+                          if (prescriptionFile == null)
+                            Container(
+                              padding: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.2),
+                                    spreadRadius: 1,
+                                    blurRadius: 5,
                                   ),
-                                ),
+                                ],
                               ),
-                            ],
-                          ),
-                          SizedBox(height: screenHeight * 0.02),
-                          Text(
-                            'Your Prescription Image',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      CircleAvatar(
+                                        backgroundImage: AssetImage('assets/icon/pres.jpg'),
+                                        radius: 25,
+                                      ),
+                                      SizedBox(width: screenWidth * 0.02),
+                                      Expanded(
+                                        child: Text(
+                                          'Attached by Prescription',
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontFamily: 'Poppins',
+                                          ),
+                                        ),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: pickPrescriptionFile,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.primaryColor,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                          minimumSize: Size(0, 0),
+                                        ),
+                                        child: Text(
+                                          'Upload',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
+
+                          // SizedBox(height: 20,),
+                          // Row(
+                          //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          //   children: [
+                          //     Expanded(
+                          //       child: Text(
+                          //         'Don\'t have prescription',
+                          //         style: TextStyle(
+                          //           color: Colors.grey,
+                          //           fontSize: 15,
+                          //           fontWeight: FontWeight.bold,
+                          //         ),
+                          //         overflow: TextOverflow.ellipsis,
+                          //       ),
+                          //     ),
+                          //     GestureDetector(
+                          //       onTap: _callPhoneNumber,
+                          //       child: Text(
+                          //         'Call Now',
+                          //         style: TextStyle(
+                          //           color: AppColors.secondaryColor,
+                          //           fontSize: 15,
+                          //           fontWeight: FontWeight.bold,
+                          //         ),
+                          //       ),
+                          //     ),
+                          //   ],
+                          // ),
+
                           if (prescriptionFile != null)
                             Padding(
                               padding: EdgeInsets.only(top: screenHeight * 0.01),
@@ -903,54 +930,8 @@ class _MedicinePageState extends State<MedicinePage> {
                     )
                         : Container(),
 
-                    SizedBox(height: screenHeight * 0.03),
 
-                    // Text(
-                    //   'Why Rama',
-                    //   style: TextStyle(
-                    //     fontSize: 16,
-                    //     fontWeight: FontWeight.bold,
-                    //     color: Colors.grey.shade700,
-                    //     fontFamily: 'Poppins',
-                    //   ),
-                    // ),
-                    // SizedBox(height: 12),
-                    // Container(
-                    //   padding: EdgeInsets.all(16),
-                    //   decoration: BoxDecoration(
-                    //     color: Colors.blue.shade100,
-                    //     borderRadius: BorderRadius.circular(12),
-                    //     boxShadow: [
-                    //       BoxShadow(
-                    //         color: Colors.grey.withOpacity(0.2),
-                    //         spreadRadius: 2,
-                    //         blurRadius: 5,
-                    //       ),
-                    //     ],
-                    //   ),
-                    //   child: Column(
-                    //     crossAxisAlignment: CrossAxisAlignment.start,
-                    //     children: [
-                    //       Text(
-                    //         'Top-Selling Medicines',
-                    //         style: TextStyle(
-                    //           fontSize: 16,
-                    //           fontWeight: FontWeight.bold,
-                    //           fontFamily: 'Poppins',
-                    //         ),
-                    //       ),
-                    //       SizedBox(height: 8),
-                    //       Text(
-                    //         'Our most popular medicines trusted by thousands.',
-                    //         style: TextStyle(
-                    //           fontSize: 14,
-                    //           color: Colors.grey.shade700,
-                    //           fontFamily: 'Poppins',
-                    //         ),
-                    //       ),
-                    //     ],
-                    //   ),
-                    // ),
+
                   ],
                 ),
               ),

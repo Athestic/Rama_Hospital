@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'colors.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+
 
 class PaymentOptionsScreen extends StatefulWidget {
   final double amount;
